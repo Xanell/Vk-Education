@@ -17,7 +17,7 @@ Task
 */
 
 func main() {
-	for i := -28; i < 48; i += 10 {
+	for i := -20; i < 40; i += 10 {
 		temperature := float64(i)*1.8 + 32
 		switch {
 		case temperature < 0:
