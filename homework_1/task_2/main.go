@@ -31,7 +31,7 @@ const (
 
 func main() {
 	price := 4500.00
-	status := regular
+	status := gold
 	textStatus := ""
 
 	var delivery float64
@@ -57,5 +57,9 @@ func main() {
 	}
 
 	totalPrice := discountPrice + delivery
-	fmt.Printf("Сумма %.2f, статус: %s\nСкидка: %.2f\nДоставка: %.2f\nИтого: %.2f", price, textStatus, discount, delivery, totalPrice)
+
+	fmt.Printf("Сумма %.2f, статус: %s\n", price, textStatus)
+	fmt.Printf("Скидка: %.2f\n", discount)
+	fmt.Printf("Доставка: %.2f\n", delivery)
+	fmt.Printf("Итого: %.2f", totalPrice)
 }

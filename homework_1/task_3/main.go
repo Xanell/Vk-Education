@@ -28,11 +28,12 @@ func main() {
 	depositRate := 0.12
 	balance := deposit
 
-	monthlyRate := 1 + depositRate/monthsInYear
+	monthlyRate := depositRate / monthsInYear
 
 	for i := 0; i < depositDuration; i++ {
 		monthProfit := balance * monthlyRate
-		fmt.Printf("Месяц %d: %.2f\n", i+1, monthProfit)
+		balance += monthProfit
+		fmt.Printf("Месяц %d: %.2f\n", i+1, balance)
 	}
 	monthCounter := 0
 	targetBalance := deposit * 2
@@ -40,10 +41,10 @@ func main() {
 
 	for balance < targetBalance {
 		monthProfit := balance * monthlyRate
-		balance = monthProfit
+		balance += monthProfit
 		monthCounter++
 	}
 	fmt.Printf("Вклад удвоится через %d мес. Баланс %.2f\n", monthCounter, balance)
-	test := 0.1 + 0.2
-	fmt.Println(test)
+	a, b := 0.1, 0.2
+	fmt.Println(a + b)
 }
