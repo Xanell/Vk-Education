@@ -35,7 +35,8 @@ var operations = map[string]Operation{
 
 func Calculate(a float64, op Operation, b float64) (float64, error) {
 	if op == nil {
-		err := fmt.Errorf("ошибка: неизвестный оператор %s", op)
+		// Как правильно форматировать вывод если op кастомного Типа?
+		err := fmt.Errorf("ошибка: неизвестная операция ", op)
 		return 0, err
 	}
 	result, err := op(a, b)
@@ -43,10 +44,10 @@ func Calculate(a float64, op Operation, b float64) (float64, error) {
 }
 
 func main() {
-	a := 1.0
-	b := 0.0
-	op := "%"
-	result, err := Calculate(a, operations[op], b)
+	a := 10.0
+	b := 5.0
+	//op := "%"
+	result, err := Calculate(a, operations["%"], b)
 	if err != nil {
 		fmt.Println(err)
 	}
