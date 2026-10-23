@@ -2,6 +2,9 @@ package main
 
 import "fmt"
 
+//Вопрос: почему в патче нельзя просто объявить Newsletter bool?
+// Потому что у bool всего два значения T/F а нам нужно третье nil чтобы понимать что ничего не передано
+
 type Profile struct {
 	Name       string
 	Age        int
@@ -44,7 +47,7 @@ func main() {
 
 	patch := ProfilePatch{
 		Age:        new(31),
-		Newsletter: new(bool),
+		Newsletter: new(false),
 	}
 
 	fmt.Println(profile)
