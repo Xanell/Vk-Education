@@ -52,7 +52,7 @@ func main() {
 	move := func(from, to string) {
 		fmt.Printf("%d: %s -> %s\n", stepA(), from, to)
 	}
-	runTimerAndTask(disks, towerA, towerB, towerC, move)
+	runTimerAndTask(disks, towerA, towerC, towerB, move)
 
 	// Задача для 20 дисков
 	fmt.Println("---Задача для 20 дисков---")
@@ -62,6 +62,6 @@ func main() {
 	move = func(from, to string) {
 		lastStep = stepB()
 	}
-	runTimerAndTask(disks, towerA, towerB, towerC, move)
+	runTimerAndTask(disks, towerA, towerC, towerB, move)
 	fmt.Printf("%d ходов\n", lastStep)
 }

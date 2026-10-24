@@ -43,14 +43,14 @@ func main() {
 	moneyToWithdraw = 200000
 	err = withDrawA(moneyToWithdraw)
 	if err != nil {
-		fmt.Printf("Снятие %s %v\n", formatedOutput(moneyToWithdraw), err)
+		fmt.Printf("Снятие %s: %v\n", formatedOutput(moneyToWithdraw), err)
 	} else {
 		fmt.Printf("Снятие %s -> %s\n", formatedOutput(moneyToWithdraw), formatedOutput(balanceA()))
 	}
-	moneyToWithdraw = 35000
+	moneyToWithdraw = 30500
 	err = withDrawA(moneyToWithdraw)
 	if err != nil {
-		fmt.Printf("Снятие %s %v\n", formatedOutput(moneyToWithdraw), err)
+		fmt.Printf("Снятие %s: %v\n", formatedOutput(moneyToWithdraw), err)
 	} else {
 		fmt.Printf("Снятие %s -> %s\n", formatedOutput(moneyToWithdraw), formatedOutput(balanceA()))
 	}
@@ -64,14 +64,14 @@ func main() {
 	moneyToWithdraw = 200000
 	err = withDrawB(moneyToWithdraw)
 	if err != nil {
-		fmt.Printf("Снятие %s %v\n", formatedOutput(moneyToWithdraw), err)
+		fmt.Printf("Снятие %s: %v\n", formatedOutput(moneyToWithdraw), err)
 	} else {
 		fmt.Printf("Снятие %s -> %s\n", formatedOutput(moneyToWithdraw), formatedOutput(balanceB()))
 	}
-	moneyToWithdraw = 35000
+	moneyToWithdraw = 30500
 	err = withDrawB(moneyToWithdraw)
 	if err != nil {
-		fmt.Printf("Снятие %s %v\n", formatedOutput(moneyToWithdraw), err)
+		fmt.Printf("Снятие %s: %v\n", formatedOutput(moneyToWithdraw), err)
 	} else {
 		fmt.Printf("Снятие %s -> %s\n", formatedOutput(moneyToWithdraw), formatedOutput(balanceB()))
 	}
