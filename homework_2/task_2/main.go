@@ -57,7 +57,7 @@ func main() {
 
 	fmt.Println("-----Счет B-----")
 	depositB, withDrawB, balanceB := NewAccount(1000000)
-	fmt.Printf("Счёт А: %s\n", formatedOutput(balanceB()))
+	fmt.Printf("Счёт B: %s\n", formatedOutput(balanceB()))
 	moneyToDeposit = 10000
 	depositB(moneyToDeposit)
 	fmt.Printf("Пополнение %s -> %s\n", formatedOutput(moneyToDeposit), formatedOutput(balanceB()))
