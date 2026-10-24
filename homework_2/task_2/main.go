@@ -47,7 +47,7 @@ func main() {
 	} else {
 		fmt.Printf("Снятие %s -> %s\n", formatedOutput(moneyToWithdraw), formatedOutput(balanceA()))
 	}
-	moneyToWithdraw = 30500
+	moneyToWithdraw = 30050
 	err = withDrawA(moneyToWithdraw)
 	if err != nil {
 		fmt.Printf("Снятие %s: %v\n", formatedOutput(moneyToWithdraw), err)
@@ -68,7 +68,7 @@ func main() {
 	} else {
 		fmt.Printf("Снятие %s -> %s\n", formatedOutput(moneyToWithdraw), formatedOutput(balanceB()))
 	}
-	moneyToWithdraw = 30500
+	moneyToWithdraw = 30050
 	err = withDrawB(moneyToWithdraw)
 	if err != nil {
 		fmt.Printf("Снятие %s: %v\n", formatedOutput(moneyToWithdraw), err)
