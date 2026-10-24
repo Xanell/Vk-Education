@@ -33,23 +33,36 @@ var operations = map[string]Operation{
 	"/": division,
 }
 
-func Calculate(a float64, op Operation, b float64) (float64, error) {
-	if op == nil {
-		// Как правильно форматировать вывод если op кастомного Типа?
-		err := fmt.Errorf("ошибка: неизвестная операция ", op)
-		return 0, err
+func Calculate(a float64, op string, b float64) (float64, error) {
+	result, ok := operations[op]
+	if !ok {
+		return 0, fmt.Errorf("ошибка: неизвестная операция %q", op)
 	}
-	result, err := op(a, b)
-	return result, err
+	return result(a, b)
 }
 
 func main() {
+	var result float64
+	var err error
 	a := 10.0
 	b := 5.0
-	//op := "%"
-	result, err := Calculate(a, operations["%"], b)
+	c := 0.0
+	result, err = Calculate(a, "+", b)
+	fmt.Printf("%.f + %.f = %.2f\n", a, b, result)
+	result, err = Calculate(a, "-", b)
+	fmt.Printf("%.f - %.f = %.2f\n", a, b, result)
+	result, err = Calculate(a, "/", b)
+	fmt.Printf("%.f / %.f = %.2f\n", a, b, result)
+	result, err = Calculate(a, "*", b)
+	fmt.Printf("%.f * %.f = %.2f\n", a, b, result)
+	result, err = Calculate(a, "/", c)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Printf("%.f / %.f = %.2f\n", a, c, result)
+	}
+	result, err = Calculate(a, "%", b)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Printf("%.2f", result)
 }

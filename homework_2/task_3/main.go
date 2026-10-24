@@ -1,18 +1,21 @@
 package main
 
+// Вопрос: почему ходов ровно 2ⁿ − 1?
+// Получается что самый нижний большой диск движется ровно 1 раз
+// А все верхние диски делают каждый раз на 2 шага больше
+
 import (
 	"fmt"
 	"time"
 )
 
 func Hanoi(n int, from, to, via string, move func(from, to string)) {
-	if n == 1 {
-		move(from, to)
-	} else {
-		Hanoi(n-1, from, via, to, move)
-		move(from, to)
-		Hanoi(n-1, via, to, from, move)
+	if n == 0 {
+		return
 	}
+	Hanoi(n-1, from, via, to, move)
+	move(from, to)
+	Hanoi(n-1, via, to, from, move)
 }
 
 func counter() func() int {
@@ -30,25 +33,34 @@ func timeTracker() func() {
 	}
 }
 
+func runTimerAndTask(n int, from, to, via string, move func(from, to string)) {
+	timer := timeTracker()
+	defer timer()
+	Hanoi(n, from, via, to, move)
+}
+
 func main() {
 	towerA := "A"
 	towerB := "B"
 	towerC := "C"
 
-	step := counter()
-	timer := timeTracker()
-
-	defer timer()
-	disks := 20
-	if disks > 5 {
-		move := func(from, to string) {
-			fmt.Printf("%d ходов \n", step())
-		}
-		Hanoi(disks, towerA, towerC, towerB, move)
-	} else {
-		move := func(from, to string) {
-			fmt.Printf("%d: %s -> %s\n", step(), from, to)
-		}
-		Hanoi(disks, towerA, towerC, towerB, move)
+	// Задача для 3 дисков
+	fmt.Println("---Задача для 3 дисков---")
+	disks := 3
+	stepA := counter()
+	move := func(from, to string) {
+		fmt.Printf("%d: %s -> %s\n", stepA(), from, to)
 	}
+	runTimerAndTask(disks, towerA, towerB, towerC, move)
+
+	// Задача для 20 дисков
+	fmt.Println("---Задача для 20 дисков---")
+	disks = 20
+	stepB := counter()
+	lastStep := 0
+	move = func(from, to string) {
+		lastStep = stepB()
+	}
+	runTimerAndTask(disks, towerA, towerB, towerC, move)
+	fmt.Printf("%d ходов\n", lastStep)
 }

@@ -12,48 +12,39 @@ func formatedOutput(initial int64) string {
 }
 
 func NewAccount(initial int64) (deposit func(int64), withDraw func(int64) error, balance func() int64) {
-	accountBalance := initial * subUnitAmount
+	accountBalance := initial
 	deposit = func(initial int64) {
-		initialSubUnits := initial * subUnitAmount
-		accountBalance += initialSubUnits
-		fmt.Printf("Пополнение %s -> %s\n", formatedOutput(initialSubUnits), formatedOutput(accountBalance))
+		accountBalance += initial
 	}
 	withDraw = func(initial int64) error {
-		initialSubUnits := initial * subUnitAmount
-		if accountBalance < initialSubUnits {
-			err := fmt.Errorf("Снятие %s: недостаточно средств (баланс %s)\n", formatedOutput(initialSubUnits), formatedOutput(accountBalance))
+		if accountBalance < initial {
+			err := fmt.Errorf("недостаточно средств (баланс %s)", formatedOutput(accountBalance))
 			return err
 		}
-		accountBalance -= initialSubUnits
-		fmt.Printf("Снятие %s -> %s\n", formatedOutput(initial), formatedOutput(accountBalance))
+		accountBalance -= initial
 		return nil
 	}
 	balance = func() int64 {
-		fmt.Printf("Счёт %s\n", formatedOutput(accountBalance))
 		return accountBalance
 	}
 	return deposit, withDraw, balance
 }
 
 func main() {
+	var moneyToDeposit int64  // Переменная для пополения баланса в копейках
+	var moneyToWithdraw int64 // Переменная для снятия баланса в копейках
+
 	fmt.Println("-----Счет А-----")
-	depositA, withDrawA, balanceA := NewAccount(1000)
-	balanceA()
-	depositA(10)
-	err := withDrawA(10000)
+	depositA, withDrawA, balanceA := NewAccount(100000)
+	fmt.Printf("Счёт А: %s\n", formatedOutput(balanceA()))
+	moneyToDeposit = 10000
+	depositA(moneyToDeposit)
+	fmt.Printf("Пополнение %s -> %s\n", formatedOutput(moneyToDeposit), formatedOutput(balanceA()))
+	moneyToWithdraw = 200000
+	err := withDrawA(moneyToWithdraw)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 	}
-	balanceA()
-	/*
-		fmt.Println("-----Счет Б-----")
-		depositB, withDrawB, balanceB := NewAccount(500)
-		balanceB()
-		depositB(100)
-		err = withDrawB(300)
-		if err != nil {
-			fmt.Print(err)
-		}
-		balanceB()
-	*/
+	moneyToWithdraw = 30000
+	fmt.Printf("Снятие %s -> %s\n", formatedOutput(moneyToWithdraw), formatedOutput(balanceA()))
 }

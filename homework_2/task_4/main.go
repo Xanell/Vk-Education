@@ -49,8 +49,9 @@ func main() {
 		Age:        new(31),
 		Newsletter: new(false),
 	}
-
-	fmt.Println(profile)
+	fmt.Println("---До изменения---")
+	fmt.Printf("Имя: %s\nВозраст: %d\nEmail: %s\nРассылка: %t\n", profile.Name, profile.Age, profile.Email, profile.Newsletter)
 	ApplyPatch(&profile, patch)
-	fmt.Println(profile)
+	fmt.Println("---После изменения---")
+	fmt.Printf("Имя: %s\nВозраст: %d\nEmail: %s\nРассылка: %t\n", profile.Name, profile.Age, profile.Email, profile.Newsletter)
 }
