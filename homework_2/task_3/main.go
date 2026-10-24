@@ -2,7 +2,8 @@ package main
 
 // Вопрос: почему ходов ровно 2ⁿ − 1?
 // Получается что самый нижний большой диск движется ровно 1 раз
-// А все верхние диски делают каждый раз на 2 шага больше
+// А все верхние диски делают каждый раз в 2 раза больше
+// для n = 3, самый нижний диск сделает 1 ход, диск над ним сделает 2 шага и самый маленький диск сделает в 2 раза больше предыдущего т.е 4, равно 7 шагов
 
 import (
 	"fmt"
@@ -36,7 +37,7 @@ func timeTracker() func() {
 func runTimerAndTask(n int, from, to, via string, move func(from, to string)) {
 	timer := timeTracker()
 	defer timer()
-	Hanoi(n, from, via, to, move)
+	Hanoi(n, from, to, via, move)
 }
 
 func main() {

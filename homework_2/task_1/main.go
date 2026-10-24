@@ -34,11 +34,11 @@ var operations = map[string]Operation{
 }
 
 func Calculate(a float64, op string, b float64) (float64, error) {
-	result, ok := operations[op]
+	operation, ok := operations[op]
 	if !ok {
 		return 0, fmt.Errorf("ошибка: неизвестная операция %q", op)
 	}
-	return result(a, b)
+	return operation(a, b)
 }
 
 func main() {
@@ -48,21 +48,39 @@ func main() {
 	b := 5.0
 	c := 0.0
 	result, err = Calculate(a, "+", b)
-	fmt.Printf("%.f + %.f = %.2f\n", a, b, result)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Printf("%.2f * %.2f = %.2f\n", a, b, result)
+	}
 	result, err = Calculate(a, "-", b)
-	fmt.Printf("%.f - %.f = %.2f\n", a, b, result)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Printf("%.2f * %.2f = %.2f\n", a, b, result)
+	}
 	result, err = Calculate(a, "/", b)
-	fmt.Printf("%.f / %.f = %.2f\n", a, b, result)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Printf("%.2f * %.2f = %.2f\n", a, b, result)
+	}
 	result, err = Calculate(a, "*", b)
-	fmt.Printf("%.f * %.f = %.2f\n", a, b, result)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Printf("%.2f * %.2f = %.2f\n", a, b, result)
+	}
 	result, err = Calculate(a, "/", c)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Printf("%.f / %.f = %.2f\n", a, c, result)
+		fmt.Printf("%.2f / %.2f = %.2f\n", a, c, result)
 	}
 	result, err = Calculate(a, "%", b)
 	if err != nil {
 		fmt.Println(err)
+	} else {
+		fmt.Printf("%.2f %.2f = %.2f\n", a, b, result)
 	}
 }
