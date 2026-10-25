@@ -10,7 +10,7 @@ import (
 
 func removeElement(nums []int, index int) ([]int, error) {
 	if index >= len(nums) || index < 0 {
-		err := fmt.Errorf("индекс %d вне диапазона [0, %d)", index, len(nums)-1)
+		err := fmt.Errorf("индекс %d вне диапазона [0, %d)", index, len(nums))
 		return nil, err
 	}
 	newSlice := slices.Clone(nums)
