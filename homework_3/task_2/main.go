@@ -19,10 +19,6 @@ func areAnagrams(s1, s2 string) bool {
 	}
 
 	for _, symbol := range s2 {
-		_, exists := symbolCounts[symbol]
-		if !exists {
-			return false
-		}
 		symbolCounts[symbol]--
 		if symbolCounts[symbol] < 0 {
 			return false

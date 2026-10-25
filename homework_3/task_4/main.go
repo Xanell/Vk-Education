@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 func isPalindrome(text string) bool {
+	re := regexp.MustCompile(`[\s[:punct:]]`)
 	text = strings.ToLower(text)
-	replacer := strings.NewReplacer(" ", "", ".", "", ",", "", "?", "", "!", "")
-	text = replacer.Replace(text)
+	text = re.ReplaceAllString(text, "")
 	textToRunes := []rune(text)
 	reverseRunes := make([]rune, 0, len(textToRunes))
 	for i := len(textToRunes) - 1; i >= 0; i-- {
