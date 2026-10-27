@@ -1,14 +1,23 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
+	"os"
+	"strconv"
+	"strings"
 )
 
 type Item interface {
 	Name() string
 	Weight() float64
 	Use() string
+}
+
+type Storable interface {
+	Serialize(w io.Writer)
+	Deserialize(r io.Reader)
 }
 
 type Weapon struct {
@@ -26,6 +35,30 @@ func (w *Weapon) Weight() float64 {
 }
 func (w *Weapon) Use() string {
 	return "Использован " + w.name
+}
+
+func (w *Weapon) Serialize(writer io.Writer) {
+	_, err := fmt.Fprintf(writer, "Weapon|%s|%.2f|%d|%d\n", w.name, w.weight, w.Damage, w.Durability)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Ошибка записи: %s", err)
+	}
+}
+
+func (w *Weapon) Deserialize(r io.Reader) {
+	scanner := bufio.NewScanner(r)
+	if scanner.Scan() {
+		line := scanner.Text()
+		lineSlice := strings.Split(line, "|")
+
+		if len(lineSlice) != 5 {
+			return
+		}
+
+		w.name = lineSlice[1]
+		w.weight, _ = strconv.ParseFloat(lineSlice[2], 64)
+		w.Damage, _ = strconv.Atoi(lineSlice[3])
+		w.Durability, _ = strconv.Atoi(lineSlice[4])
+	}
 }
 
 var _ Item = (*Weapon)(nil)
@@ -46,6 +79,27 @@ func (a *Armor) Weight() float64 {
 
 func (a *Armor) Use() string {
 	return "Экипировать " + a.name
+}
+
+func (a *Armor) Serialize(writer io.Writer) {
+	_, err := fmt.Fprintf(writer, "Armor|%s|%.2f|%d\n", a.name, a.weight, a.Defense)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Ошибка записи: %s", err)
+	}
+}
+
+func (a *Armor) Deserialize(r io.Reader) {
+	scanner := bufio.NewScanner(r)
+	if scanner.Scan() {
+		line := scanner.Text()
+		lineSlice := strings.Split(line, "|")
+		if len(lineSlice) != 4 {
+			return
+		}
+		a.name = lineSlice[1]
+		a.weight, _ = strconv.ParseFloat(lineSlice[2], 64)
+		a.Defense, _ = strconv.Atoi(lineSlice[3])
+	}
 }
 
 var _ Item = (*Armor)(nil)
@@ -160,21 +214,31 @@ func (inv *Inventory) FindItemByName(name string) (Item, bool) {
 	})
 }
 
-// TODO: Бонус: реализуйте интефейс Storable для Weapon и Armor:
-// TODO: - Weapon: формат "Weapon|Name|Damage|Durability|Weight"
-// TODO: - Armor: формат "Armor|Name|Defense|Weight"
-
-type Storable interface {
-	Serialize(w io.Writer)
-	Deserialize(r io.Reader)
-}
-
 func (inv *Inventory) Save(w io.Writer) {
-	// TODO: Бонус: сделайте сохранение/загрузку инвентаря в/из файла
+	for _, item := range inv.Items {
+		if storableItem, ok := item.(Storable); ok {
+			storableItem.Serialize(w)
+		}
+	}
 }
 
 func (inv *Inventory) Load(r io.Reader) {
-	// TODO: Бонус: сделайте сохранение/загрузку инвентаря в/из файла
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		line := scanner.Text()
+		lineSlice := strings.Split(line, "|")
+		switch lineSlice[0] {
+		case "Weapon":
+			w := &Weapon{}
+			w.Deserialize(strings.NewReader(line))
+			inv.AddItem(w)
+
+		case "Armor":
+			a := &Armor{}
+			a.Deserialize(strings.NewReader(line))
+			inv.AddItem(a)
+		}
+	}
 }
 
 func main() {
@@ -184,6 +248,9 @@ func main() {
 	armor := &Armor{name: "Щит", weight: 10.0, Defense: 5}
 	healPotion := &Potion{name: "Лечебное зелье", weight: 0.5, Effect: "+50 Hp", Charge: 3}
 	bow := &Weapon{name: "Сломанный лук", weight: 3.5, Damage: 1, Durability: 0}
+
+	sword.Serialize(os.Stdout)
+	sword.Deserialize(strings.NewReader("Weapon|Меч|5.0|10|5\nWeapon|Меч|3.0|5|7"))
 
 	inventory.AddItem(sword)
 	inventory.AddItem(armor)
@@ -236,5 +303,19 @@ func main() {
 		fmt.Printf(DescribeItem(item))
 	}
 
-	// TODO: Бонус: сделайте сохранение инвентаря в файл и загрузку инвентаря из файла
+	fmt.Println("---Сохранение в файл---")
+	file, _ := os.Create("inventory.txt")
+	inventory.Save(file)
+	defer file.Close()
+
+	fmt.Println("---Чтение из файла---")
+	newInv := &Inventory{}
+	file2, _ := os.Open("inventory.txt")
+	newInv.Load(file2)
+	defer file.Close()
+
+	newItems := newInv.ItemNames()
+	for _, newItem := range newItems {
+		fmt.Printf("%s\n", newItem)
+	}
 }
