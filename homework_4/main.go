@@ -249,9 +249,6 @@ func main() {
 	healPotion := &Potion{name: "Лечебное зелье", weight: 0.5, Effect: "+50 Hp", Charge: 3}
 	bow := &Weapon{name: "Сломанный лук", weight: 3.5, Damage: 1, Durability: 0}
 
-	sword.Serialize(os.Stdout)
-	sword.Deserialize(strings.NewReader("Weapon|Меч|5.0|10|5\nWeapon|Меч|3.0|5|7"))
-
 	inventory.AddItem(sword)
 	inventory.AddItem(armor)
 	inventory.AddItem(healPotion)
