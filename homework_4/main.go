@@ -301,13 +301,19 @@ func main() {
 	}
 
 	fmt.Println("---Сохранение в файл---")
-	file, _ := os.Create("inventory.txt")
+	file, err := os.Create("inventory.txt")
+	if err != nil {
+		fmt.Printf("Ошибка сохранения в файл: %s\n", err)
+	}
 	inventory.Save(file)
 	defer file.Close()
 
 	fmt.Println("---Чтение из файла---")
 	newInv := &Inventory{}
-	file2, _ := os.Open("inventory.txt")
+	file2, err := os.Open("inventory.txt")
+	if err != nil {
+		fmt.Printf("Ошибка чтения из файла: %s\n ", err)
+	}
 	newInv.Load(file2)
 	defer file.Close()
 
