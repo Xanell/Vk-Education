@@ -105,10 +105,10 @@ func (a *Armor) Deserialize(r io.Reader) {
 var _ Item = (*Armor)(nil)
 
 type Potion struct {
-	name   string
-	weight float64
-	Effect string
-	Charge int
+	name    string
+	weight  float64
+	Effect  string
+	Charges int
 }
 
 func (p *Potion) Name() string {
@@ -129,7 +129,7 @@ func DescribeItem(i Item) string {
 	}
 	name := i.Name()
 	weight := i.Weight()
-	return fmt.Sprintf("%s (вес: %.2f)", name, weight)
+	return fmt.Sprintf("%s (вес: %.2f)\n", name, weight)
 }
 
 func Filter[T any](items []T, predicate func(T) bool) []T {
@@ -184,21 +184,14 @@ func (inv *Inventory) Weapons() []*Weapon {
 
 func (inv *Inventory) BrokenItems() []Item {
 	return Filter(inv.Items, func(item Item) bool {
-		w, ok := item.(*Weapon)
-		if !ok {
+		switch value := item.(type) {
+		case *Weapon:
+			return value.Durability <= 0
+		case *Potion:
+			return value.Charges <= 0
+		default:
 			return false
 		}
-		if w.Durability <= 0 {
-			return true
-		}
-		p, ok := item.(*Potion)
-		if !ok {
-			return false
-		}
-		if p.Charge <= 0 {
-			return true
-		}
-		return false
 	})
 }
 
@@ -241,12 +234,32 @@ func (inv *Inventory) Load(r io.Reader) {
 	}
 }
 
+func saveToFile(inventory *Inventory) error {
+	file, err := os.Create("inventory.txt")
+	if err != nil {
+		return fmt.Errorf("ошибка сохранения в файл: %s", err)
+	}
+	defer file.Close()
+	inventory.Save(file)
+	return nil
+}
+
+func loadFromFile(inventory *Inventory) error {
+	file, err := os.Open("inventory.txt")
+	if err != nil {
+		fmt.Printf("ошибка чтения из файла: %s\n ", err)
+	}
+	defer file.Close()
+	inventory.Load(file)
+	return nil
+}
+
 func main() {
 	inventory := Inventory{}
 
 	sword := &Weapon{name: "Меч", weight: 5.0, Damage: 10, Durability: 5}
 	armor := &Armor{name: "Щит", weight: 10.0, Defense: 5}
-	healPotion := &Potion{name: "Лечебное зелье", weight: 0.5, Effect: "+50 Hp", Charge: 3}
+	healPotion := &Potion{name: "Лечебное зелье", weight: 0.5, Effect: "+50 Hp", Charges: 3}
 	bow := &Weapon{name: "Сломанный лук", weight: 3.5, Damage: 1, Durability: 0}
 
 	inventory.AddItem(sword)
@@ -297,28 +310,23 @@ func main() {
 	if !found {
 		fmt.Println("Предмет не найден")
 	} else {
-		fmt.Printf(DescribeItem(item))
+		fmt.Println(DescribeItem(item))
 	}
 
 	fmt.Println("---Сохранение в файл---")
-	file, err := os.Create("inventory.txt")
+	err := saveToFile(&inventory)
 	if err != nil {
-		fmt.Printf("Ошибка сохранения в файл: %s\n", err)
+		fmt.Println(err)
+	} else {
+		fmt.Println("Успешно сохранил в фаил")
 	}
-	inventory.Save(file)
-	defer file.Close()
 
 	fmt.Println("---Чтение из файла---")
 	newInv := &Inventory{}
-	file2, err := os.Open("inventory.txt")
-	if err != nil {
-		fmt.Printf("Ошибка чтения из файла: %s\n ", err)
-	}
-	newInv.Load(file2)
-	defer file.Close()
-
-	newItems := newInv.ItemNames()
-	for _, newItem := range newItems {
-		fmt.Printf("%s\n", newItem)
+	err2 := loadFromFile(newInv)
+	if err2 != nil {
+		fmt.Println(err2)
+	} else {
+		fmt.Println("Успешное чтение из файла")
 	}
 }
