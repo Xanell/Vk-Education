@@ -124,28 +124,25 @@ func (p *Potion) Use() string {
 var _ Item = (*Potion)(nil)
 
 func DescribeItem(i Item) string {
-	if i == nil {
-		return "Предмет отсутствует"
-	}
 	switch value := i.(type) {
+	case nil:
+		return "Предмет отсутствует"
 	case *Weapon:
 		if value == nil {
 			return "Предмет отсутствует"
 		}
-		return fmt.Sprintf("%s (вес: %.2f)", value.name, value.weight)
 	case *Armor:
 		if value == nil {
 			return "Предмет отсутствует"
 		}
-		return fmt.Sprintf("%s (вес: %.2f)", value.name, value.weight)
 	case *Potion:
 		if value == nil {
 			return "Предмет отсутствует"
 		}
-		return fmt.Sprintf("%s (вес: %.2f)", value.name, value.weight)
 	default:
 		return "Неизвестный предмет"
 	}
+	return fmt.Sprintf("%s (вес: %.2f)", i.Name(), i.Weight())
 }
 
 func Filter[T any](items []T, predicate func(T) bool) []T {
@@ -263,7 +260,7 @@ func saveToFile(inventory *Inventory) error {
 func loadFromFile(inventory *Inventory) error {
 	file, err := os.Open("inventory.txt")
 	if err != nil {
-		return fmt.Errorf("ошибка чтения из файла: %s ", err)
+		return fmt.Errorf("ошибка чтения из файла: %s", err)
 	}
 	defer file.Close()
 	inventory.Load(file)
@@ -296,8 +293,7 @@ func main() {
 	fmt.Println(DescribeItem(sword))
 
 	fmt.Println("---DescribeItem c nil---")
-	sword2 := &Weapon{}
-	fmt.Println(DescribeItem(sword2))
+	fmt.Println(DescribeItem(nil))
 
 	fmt.Println("---DescribeItem с nil-указателем")
 	var nilSword *Weapon
