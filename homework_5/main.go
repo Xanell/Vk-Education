@@ -19,10 +19,12 @@ type Item interface {
 	Name() string
 	Weight() float64
 	Use() (string, error)
+	SetId(id int)
+	GetId() int
 }
 
 type Storable interface {
-	Serialize(w io.Writer)
+	Serialize(w io.Writer) error
 	Deserialize(r io.Reader) error
 }
 
@@ -45,6 +47,7 @@ func (e *ParseItemError) Unwrap() error {
 }
 
 type Weapon struct {
+	ID         int
 	name       string
 	weight     float64
 	Damage     int
@@ -68,11 +71,20 @@ func (w *Weapon) Use() (string, error) {
 	return "Использован " + w.name, nil
 }
 
-func (w *Weapon) Serialize(writer io.Writer) {
-	_, err := fmt.Fprintf(writer, "Weapon|%s|%.2f|%d|%d\n", w.name, w.weight, w.Damage, w.Durability)
+func (w *Weapon) SetId(id int) {
+	w.ID = id
+}
+
+func (w *Weapon) GetId() int {
+	return w.ID
+}
+
+func (w *Weapon) Serialize(writer io.Writer) error {
+	_, err := fmt.Fprintf(writer, "%d|Weapon|%s|%.2f|%d|%d\n", w.ID, w.name, w.weight, w.Damage, w.Durability)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Ошибка записи: %s", err)
+		return fmt.Errorf("не удалось записать оружие: %q %w", w.name, err)
 	}
+	return nil
 }
 
 func (w *Weapon) Deserialize(r io.Reader) error {
@@ -82,23 +94,27 @@ func (w *Weapon) Deserialize(r io.Reader) error {
 	}
 	line := string(data)
 	lineSlice := strings.Split(line, "|")
-	if len(lineSlice) != 5 {
-		return fmt.Errorf("ожидалось 5 полей, получено %d", len(lineSlice))
+	if len(lineSlice) != 6 {
+		return fmt.Errorf("ожидалось 6 полей, получено %d", len(lineSlice))
 	}
-	w.name = lineSlice[1]
-	weight, err := strconv.ParseFloat(lineSlice[2], 64)
+	w.ID, err = strconv.Atoi(lineSlice[0])
+	if err != nil {
+		return fmt.Errorf("неверный формат для ID: %w", err)
+	}
+	w.name = lineSlice[2]
+	weight, err := strconv.ParseFloat(lineSlice[3], 64)
 	if err != nil {
 		return fmt.Errorf("неверный формат для веса: %w", err)
 	}
 	w.weight = weight
-	damage, err := strconv.Atoi(lineSlice[3])
+	damage, err := strconv.Atoi(lineSlice[4])
 	if err != nil {
-		return fmt.Errorf("неверный формат для урона %w", err)
+		return fmt.Errorf("неверный формат для урона: %w", err)
 	}
 	w.Damage = damage
-	durability, err := strconv.Atoi(lineSlice[4])
+	durability, err := strconv.Atoi(lineSlice[5])
 	if err != nil {
-		return fmt.Errorf("неверный формат для прочности %w", err)
+		return fmt.Errorf("неверный формат для прочности: %w", err)
 	}
 	w.Durability = durability
 	return nil
@@ -107,6 +123,7 @@ func (w *Weapon) Deserialize(r io.Reader) error {
 var _ Item = (*Weapon)(nil)
 
 type Armor struct {
+	ID      int
 	name    string
 	weight  float64
 	Defense int
@@ -122,11 +139,20 @@ func (a *Armor) Use() (string, error) {
 	return "Экипировать " + a.name, nil
 }
 
-func (a *Armor) Serialize(writer io.Writer) {
-	_, err := fmt.Fprintf(writer, "Armor|%s|%.2f|%d\n", a.name, a.weight, a.Defense)
+func (a *Armor) SetId(id int) {
+	a.ID = id
+}
+
+func (a *Armor) GetId() int {
+	return a.ID
+}
+
+func (a *Armor) Serialize(writer io.Writer) error {
+	_, err := fmt.Fprintf(writer, "%d|Armor|%s|%.2f|%d\n", a.ID, a.name, a.weight, a.Defense)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Ошибка записи: %s", err)
+		return fmt.Errorf("не удалось записать броню: %q, %w", a.name, err)
 	}
+	return nil
 }
 
 func (a *Armor) Deserialize(r io.Reader) error {
@@ -136,16 +162,20 @@ func (a *Armor) Deserialize(r io.Reader) error {
 	}
 	line := string(data)
 	lineSlice := strings.Split(line, "|")
-	if len(lineSlice) != 4 {
-		return fmt.Errorf("ожидалось 3 поля, получено %d", len(lineSlice))
+	if len(lineSlice) != 5 {
+		return fmt.Errorf("ожидалось 4 поля, получено %d", len(lineSlice))
 	}
-	a.name = lineSlice[1]
-	weight, err := strconv.ParseFloat(lineSlice[2], 64)
+	a.ID, err = strconv.Atoi(lineSlice[0])
+	if err != nil {
+		return fmt.Errorf("неверный формат для ID: %w", err)
+	}
+	a.name = lineSlice[2]
+	weight, err := strconv.ParseFloat(lineSlice[3], 64)
 	if err != nil {
 		return fmt.Errorf("неверный формат для веса: %w", err)
 	}
 	a.weight = weight
-	defense, err := strconv.Atoi(lineSlice[3])
+	defense, err := strconv.Atoi(lineSlice[4])
 	if err != nil {
 		return fmt.Errorf("неверный формат защиты: %w", err)
 	}
@@ -156,6 +186,7 @@ func (a *Armor) Deserialize(r io.Reader) error {
 var _ Item = (*Armor)(nil)
 
 type Potion struct {
+	ID      int
 	name    string
 	weight  float64
 	Effect  string
@@ -179,11 +210,20 @@ func (p *Potion) Use() (string, error) {
 	return "Использовано " + p.name, nil
 }
 
-func (p *Potion) Serialize(writer io.Writer) {
-	_, err := fmt.Fprintf(writer, "Potion|%s|%.2f|%s|%d\n", p.name, p.weight, p.Effect, p.Charges)
+func (p *Potion) SetId(id int) {
+	p.ID = id
+}
+
+func (p *Potion) GetId() int {
+	return p.ID
+}
+
+func (p *Potion) Serialize(writer io.Writer) error {
+	_, err := fmt.Fprintf(writer, "%d|Potion|%s|%.2f|%s|%d\n", p.ID, p.name, p.weight, p.Effect, p.Charges)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Ошибка записи: %s", err)
+		return fmt.Errorf("не удалось записать зелье: %q %w", p.name, err)
 	}
+	return nil
 }
 
 func (p *Potion) Deserialize(r io.Reader) error {
@@ -194,17 +234,21 @@ func (p *Potion) Deserialize(r io.Reader) error {
 	line := string(data)
 	lineSlice := strings.Split(line, "|")
 
-	if len(lineSlice) != 5 {
-		return fmt.Errorf("ожидалось 4 поля, получено %d", len(lineSlice))
+	if len(lineSlice) != 6 {
+		return fmt.Errorf("ожидалось 6 полей, получено %d", len(lineSlice))
 	}
-	p.name = lineSlice[1]
-	weight, err := strconv.ParseFloat(lineSlice[2], 64)
+	p.ID, err = strconv.Atoi(lineSlice[0])
+	if err != nil {
+		return fmt.Errorf("неверный формат для ID: %w", err)
+	}
+	p.name = lineSlice[2]
+	weight, err := strconv.ParseFloat(lineSlice[3], 64)
 	if err != nil {
 		return fmt.Errorf("неверный формат для веса: %w", err)
 	}
 	p.weight = weight
-	p.Effect = lineSlice[3]
-	charges, err := strconv.Atoi(lineSlice[4])
+	p.Effect = lineSlice[4]
+	charges, err := strconv.Atoi(lineSlice[5])
 	if err != nil {
 		return fmt.Errorf("неверный формат для зарядов: %w", err)
 	}
@@ -265,13 +309,15 @@ func Find[T any](items []T, condition func(T) bool) (T, bool) {
 }
 
 type Inventory struct {
-	Items []Item
+	nextID int
+	Items  []Item
 }
 
 func (inv *Inventory) AddItem(item Item) int {
+	item.SetId(inv.nextID)
 	inv.Items = append(inv.Items, item)
-	id := len(inv.Items) - 1
-	return id
+	inv.nextID++
+	return item.GetId()
 }
 
 func (inv *Inventory) Weapons() []*Weapon {
@@ -313,12 +359,16 @@ func (inv *Inventory) FindItemByName(name string) (Item, bool) {
 	})
 }
 
-func (inv *Inventory) Save(w io.Writer) {
-	for _, item := range inv.Items {
+func (inv *Inventory) Save(w io.Writer) error {
+	var errs []error
+	for i, item := range inv.Items {
 		if storableItem, ok := item.(Storable); ok {
-			storableItem.Serialize(w)
+			if err := storableItem.Serialize(w); err != nil {
+				errs = append(errs, fmt.Errorf("слот %d (предмет %q): %w", i, item.Name(), err))
+			}
 		}
 	}
+	return errors.Join(errs...)
 }
 
 func (inv *Inventory) Load(r io.Reader) error {
@@ -329,7 +379,18 @@ func (inv *Inventory) Load(r io.Reader) error {
 		lineNum++
 		line := scanner.Text()
 		lineSlice := strings.Split(line, "|")
-		switch lineSlice[0] {
+
+		if len(lineSlice) < 2 {
+			err := fmt.Errorf("недостаточно данных: строка не содержит тип предмета")
+			parseErr := &ParseItemError{
+				Line:  lineNum,
+				Value: line,
+				Err:   err,
+			}
+			errs = append(errs, parseErr)
+			continue
+		}
+		switch lineSlice[1] {
 		case "Weapon":
 			w := &Weapon{}
 			err := w.Deserialize(strings.NewReader(line))
@@ -341,7 +402,10 @@ func (inv *Inventory) Load(r io.Reader) error {
 				}
 				errs = append(errs, parseErr)
 			} else {
-				inv.AddItem(w)
+				inv.Items = append(inv.Items, w)
+				if w.GetId() >= inv.nextID {
+					inv.nextID = w.ID + 1
+				}
 			}
 		case "Armor":
 			a := &Armor{}
@@ -354,7 +418,10 @@ func (inv *Inventory) Load(r io.Reader) error {
 				}
 				errs = append(errs, parseErr)
 			} else {
-				inv.AddItem(a)
+				inv.Items = append(inv.Items, a)
+				if a.GetId() >= inv.nextID {
+					inv.nextID = a.ID + 1
+				}
 			}
 		case "Potion":
 			p := &Potion{}
@@ -367,10 +434,13 @@ func (inv *Inventory) Load(r io.Reader) error {
 				}
 				errs = append(errs, parseErr)
 			} else {
-				inv.AddItem(p)
+				inv.Items = append(inv.Items, p)
+				if p.GetId() >= inv.nextID {
+					inv.nextID = p.ID + 1
+				}
 			}
 		default:
-			err := fmt.Errorf("неизвестный тип предмета %s", lineSlice[0])
+			err := fmt.Errorf("неизвестный тип предмета %s", lineSlice[1])
 			parseErr := &ParseItemError{
 				Line:  lineNum,
 				Value: line,
@@ -385,7 +455,7 @@ func (inv *Inventory) Load(r io.Reader) error {
 	return errors.Join(errs...)
 }
 
-func saveToFile(inventory *Inventory, fileName string) error {
+func saveToFile(inventory *Inventory, fileName string) (err error) {
 	file, err := os.Create(fileName)
 	if err != nil {
 		return fmt.Errorf("ошибка сохранения в файл: %s", err)
@@ -396,8 +466,7 @@ func saveToFile(inventory *Inventory, fileName string) error {
 			err = errors.Join(err, fmt.Errorf("ошибка при закрытии файла: %w", closeErr))
 		}
 	}()
-	inventory.Save(file)
-	return nil
+	return inventory.Save(file)
 }
 
 func loadFromFile(inventory *Inventory, fileName string) error {
@@ -410,7 +479,9 @@ func loadFromFile(inventory *Inventory, fileName string) error {
 }
 
 func main() {
-	inventory := Inventory{}
+	inventory := Inventory{
+		nextID: 1,
+	}
 
 	sword := &Weapon{name: "Меч", weight: 5.0, Damage: 10, Durability: 5}
 	armor := &Armor{name: "Щит", weight: 10.0, Defense: 5}
@@ -421,7 +492,7 @@ func main() {
 	inventory.AddItem(armor)
 	inventory.AddItem(healPotion)
 	inventory.AddItem(bow)
-
+	
 	fmt.Println("---До Use---")
 	fmt.Printf("Состояние меча: %d, Заряды зелья: %d\n", sword.Durability, healPotion.Charges)
 	sword.Use()
