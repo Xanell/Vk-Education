@@ -380,7 +380,7 @@ func (inv *Inventory) Load(r io.Reader) error {
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		errs = append(errs, err)
+		errs = append(errs, fmt.Errorf("ошибка чтения из файла: %w", err))
 	}
 	return errors.Join(errs...)
 }
