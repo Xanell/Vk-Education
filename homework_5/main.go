@@ -163,7 +163,7 @@ func (a *Armor) Deserialize(r io.Reader) error {
 	line := string(data)
 	lineSlice := strings.Split(line, "|")
 	if len(lineSlice) != 5 {
-		return fmt.Errorf("ожидалось 4 поля, получено %d", len(lineSlice))
+		return fmt.Errorf("ожидалось 5 поля, получено %d", len(lineSlice))
 	}
 	a.ID, err = strconv.Atoi(lineSlice[0])
 	if err != nil {
@@ -373,6 +373,7 @@ func (inv *Inventory) Save(w io.Writer) error {
 
 func (inv *Inventory) Load(r io.Reader) error {
 	var errs []error
+	existingIDs := make(map[int]bool)
 	scanner := bufio.NewScanner(r)
 	lineNum := 0
 	for scanner.Scan() {
@@ -402,9 +403,20 @@ func (inv *Inventory) Load(r io.Reader) error {
 				}
 				errs = append(errs, parseErr)
 			} else {
-				inv.Items = append(inv.Items, w)
-				if w.GetId() >= inv.nextID {
-					inv.nextID = w.ID + 1
+				if existingIDs[w.ID] {
+					err = fmt.Errorf("дубликат ID %d", w.ID)
+					parseErr := &ParseItemError{
+						Line:  lineNum,
+						Value: line,
+						Err:   err,
+					}
+					errs = append(errs, parseErr)
+				} else {
+					existingIDs[w.ID] = true
+					inv.Items = append(inv.Items, w)
+					if w.GetId() >= inv.nextID {
+						inv.nextID = w.ID + 1
+					}
 				}
 			}
 		case "Armor":
@@ -418,9 +430,20 @@ func (inv *Inventory) Load(r io.Reader) error {
 				}
 				errs = append(errs, parseErr)
 			} else {
-				inv.Items = append(inv.Items, a)
-				if a.GetId() >= inv.nextID {
-					inv.nextID = a.ID + 1
+				if existingIDs[a.ID] {
+					err = fmt.Errorf("дубликат ID %d", a.ID)
+					parseErr := &ParseItemError{
+						Line:  lineNum,
+						Value: line,
+						Err:   err,
+					}
+					errs = append(errs, parseErr)
+				} else {
+					existingIDs[a.ID] = true
+					inv.Items = append(inv.Items, a)
+					if a.GetId() >= inv.nextID {
+						inv.nextID = a.ID + 1
+					}
 				}
 			}
 		case "Potion":
@@ -434,9 +457,20 @@ func (inv *Inventory) Load(r io.Reader) error {
 				}
 				errs = append(errs, parseErr)
 			} else {
-				inv.Items = append(inv.Items, p)
-				if p.GetId() >= inv.nextID {
-					inv.nextID = p.ID + 1
+				if existingIDs[p.ID] {
+					err = fmt.Errorf("дубликат ID %d", p.ID)
+					parseErr := &ParseItemError{
+						Line:  lineNum,
+						Value: line,
+						Err:   err,
+					}
+					errs = append(errs, parseErr)
+				} else {
+					existingIDs[p.ID] = true
+					inv.Items = append(inv.Items, p)
+					if p.GetId() >= inv.nextID {
+						inv.nextID = p.ID + 1
+					}
 				}
 			}
 		default:
@@ -492,7 +526,7 @@ func main() {
 	inventory.AddItem(armor)
 	inventory.AddItem(healPotion)
 	inventory.AddItem(bow)
-	
+
 	fmt.Println("---До Use---")
 	fmt.Printf("Состояние меча: %d, Заряды зелья: %d\n", sword.Durability, healPotion.Charges)
 	sword.Use()
