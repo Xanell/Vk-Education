@@ -258,6 +258,34 @@ func (p *Potion) Deserialize(r io.Reader) error {
 
 var _ Item = (*Potion)(nil)
 
+type ringOfPanica struct {
+	ID          int
+	name        string
+	weight      float64
+	Description string
+}
+
+func (r *ringOfPanica) Name() string {
+	return r.name
+}
+func (r *ringOfPanica) Weight() float64 {
+	return r.weight
+}
+
+func (r *ringOfPanica) Use() (string, error) {
+	panic("Кольцо паники сработало!")
+}
+
+func (r *ringOfPanica) SetId(id int) {
+	r.ID = id
+}
+
+func (r *ringOfPanica) GetId() int {
+	return r.ID
+}
+
+var _ Item = (*ringOfPanica)(nil)
+
 func DescribeItem(i Item) string {
 	switch value := i.(type) {
 	case nil:
@@ -512,6 +540,16 @@ func loadFromFile(inventory *Inventory, fileName string) error {
 	return inventory.Load(file)
 }
 
+func UseDangerousItem(item Item) (message string, err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("предмет взорвался с паникой: %v", recovered)
+			message = fmt.Sprintf("%v", recovered)
+		}
+	}()
+	return item.Use()
+}
+
 func main() {
 	inventory := Inventory{
 		nextID: 1,
@@ -576,6 +614,15 @@ func main() {
 			fmt.Println("Успешная загрузка. Инвентарь пуст.")
 		}
 	}
-
 	// Ошибка новое содержимое короче старого решается через os.Create
+
+	fmt.Println("---Использование предмета с Паникой---")
+	ring := &ringOfPanica{name: "Кольцо Паники", weight: 0.5, Description: "Активирует зло"}
+	inventory.AddItem(ring)
+	message, err := UseDangerousItem(ring)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(message)
+	}
 }
