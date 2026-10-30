@@ -492,7 +492,7 @@ func (inv *Inventory) Load(r io.Reader) error {
 func saveToFile(inventory *Inventory, fileName string) (err error) {
 	file, err := os.Create(fileName)
 	if err != nil {
-		return fmt.Errorf("ошибка сохранения в файл: %s", err)
+		return fmt.Errorf("ошибка сохранения в файл: %w", err)
 	}
 	defer func() {
 		closeErr := file.Close()
