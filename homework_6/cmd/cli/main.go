@@ -11,7 +11,11 @@ import (
 	"os"
 )
 
-var ErrUsage = errors.New("неизвестная команда")
+var (
+	ErrUsage          = errors.New("неизвестная команда")
+	ErrFlagIsNotExist = errors.New("отсутствует флаг")
+)
+
 var commandList = []string{
 	"list",
 	"add",
@@ -35,7 +39,7 @@ func addItem(inv *inventoryService.Inventory, args []string) error {
 	addCmd := flag.NewFlagSet("add", flag.ContinueOnError)
 	itemType := addCmd.String("type", "", "Тип предмета (weapon, armor, potion)")
 	name := addCmd.String("name", "", "Имя предмета")
-	weight := addCmd.Float64("weight", 5.0, "Вес")
+	weight := addCmd.Float64("weight", 0.0, "Вес")
 
 	damage := addCmd.Int("damage", 10, "Урон (для weapon)")
 	durability := addCmd.Int("durability", 100, "Прочность (для weapon)")
@@ -49,11 +53,14 @@ func addItem(inv *inventoryService.Inventory, args []string) error {
 	if err := addCmd.Parse(args); err != nil {
 		return err
 	}
-	if *name == "" {
-		return errors.New("флаг -name обязателен")
-	}
 	if *itemType == "" {
-		return errors.New("флаг -type обязателен")
+		return fmt.Errorf("ошибка: %w флаг -type обязателен", ErrFlagIsNotExist)
+	}
+	if *name == "" {
+		return fmt.Errorf("ошибка: %w флаг -name обязателен", ErrFlagIsNotExist)
+	}
+	if *weight == 0.0 {
+		return fmt.Errorf("ошибка: %w флаг -weight обязателен", ErrFlagIsNotExist)
 	}
 	var item domain.Item
 
@@ -82,6 +89,9 @@ func useItem(inv *inventoryService.Inventory, args []string) error {
 	if err := useCmd.Parse(args); err != nil {
 		return err
 	}
+	if *itemId == 0 {
+		return fmt.Errorf("ошибка: %w флаг -id обязателен", ErrFlagIsNotExist)
+	}
 	value, ok := inv.FindItemById(*itemId)
 	if !ok {
 		return fmt.Errorf("предмет с ID: %d не найден", *itemId)
@@ -103,6 +113,9 @@ func deleteItem(inv *inventoryService.Inventory, args []string) error {
 	}
 	if err := deleteCmd.Parse(args); err != nil {
 		return err
+	}
+	if *itemId == 0 {
+		return fmt.Errorf("ошибка: %w флаг -id обязателен", ErrFlagIsNotExist)
 	}
 	err := inv.RemoveItemById(*itemId)
 	if err != nil {
@@ -142,7 +155,7 @@ func exitCode(err error) int {
 	switch {
 	case err == nil:
 		return 0
-	case errors.Is(err, ErrUsage):
+	case errors.Is(err, ErrUsage) || errors.Is(err, ErrFlagIsNotExist):
 		return 2
 	default:
 		return 1
