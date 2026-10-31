@@ -7,7 +7,7 @@
 
 # Idea ignore
 *.idea
-*inventory.txt
+homework_6/cmd/cli/inventory.txt
 # Test binary, built with `go test -c`
 *.test
 

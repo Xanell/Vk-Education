@@ -64,8 +64,16 @@ func (inv *Inventory) ItemNames() []string {
 	})
 }
 
-func (inv *Inventory) FindItemByName(name string) (domain.Item, bool) {
+func (inv *Inventory) FindItemById(id int) (domain.Item, bool) {
 	return utils.Find(inv.Items, func(item domain.Item) bool {
-		return item.Name() == name
+		return item.GetId() == id
 	})
+}
+
+func (inv *Inventory) Load() error {
+	return inv.store.Load(inv)
+}
+
+func (inv *Inventory) Save() error {
+	return inv.store.Save(inv)
 }

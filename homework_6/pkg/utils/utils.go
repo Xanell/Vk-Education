@@ -1,5 +1,10 @@
 package utils
 
+import (
+	"fmt"
+	"go-education/homework_6/internal/items"
+)
+
 func Filter[T any](items []T, predicate func(T) bool) []T {
 	result := make([]T, 0, len(items))
 	for _, item := range items {
@@ -26,4 +31,26 @@ func Find[T any](items []T, condition func(T) bool) (T, bool) {
 	}
 	var zero T
 	return zero, false
+}
+
+func DescribeItem(i domain.Item) string {
+	switch value := i.(type) {
+	case nil:
+		return "Предмет отсутствует"
+	case *domain.Weapon:
+		if value == nil {
+			return "Предмет отсутствует"
+		}
+	case *domain.Armor:
+		if value == nil {
+			return "Предмет отсутствует"
+		}
+	case *domain.Potion:
+		if value == nil {
+			return "Предмет отсутствует"
+		}
+	default:
+		return "Неизвестный предмет"
+	}
+	return fmt.Sprintf("[ID: %d] %s (вес: %.2f)", i.GetId(), i.Name(), i.Weight())
 }
