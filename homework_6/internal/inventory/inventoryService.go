@@ -1,6 +1,7 @@
 package inventoryService
 
 import (
+	"fmt"
 	"go-education/homework_6/internal/items"
 	"go-education/homework_6/pkg/utils"
 )
@@ -29,6 +30,16 @@ func (inv *Inventory) AddItem(item domain.Item) int {
 	inv.Items = append(inv.Items, item)
 	inv.NextID++
 	return item.GetId()
+}
+
+func (inv *Inventory) RemoveItemById(id int) error {
+	for i, item := range inv.Items {
+		if item.GetId() == id {
+			inv.Items = append(inv.Items[:i], inv.Items[i+1:]...)
+			return nil
+		}
+	}
+	return fmt.Errorf("предмет с ID %d не найден", id)
 }
 
 func (inv *Inventory) Weapons() []*domain.Weapon {

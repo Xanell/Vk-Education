@@ -42,6 +42,10 @@ func addItem(inv *inventoryService.Inventory, args []string) error {
 	defense := addCmd.Int("defense", 5, "Защита (для armor)")
 	effect := addCmd.String("effect", "", "Эффект (для potion)")
 	charges := addCmd.Int("charges", 1, "Заряды (для potion)")
+	addCmd.Usage = func() {
+		fmt.Fprintln(addCmd.Output(), "для использования: add [-type ItemType] [-name NAME] [-weight WEIGHT]")
+		addCmd.PrintDefaults()
+	}
 	if err := addCmd.Parse(args); err != nil {
 		return err
 	}
@@ -71,6 +75,10 @@ func addItem(inv *inventoryService.Inventory, args []string) error {
 func useItem(inv *inventoryService.Inventory, args []string) error {
 	useCmd := flag.NewFlagSet("use", flag.ContinueOnError)
 	itemId := useCmd.Int("id", 0, "ID предмета для использования")
+	useCmd.Usage = func() {
+		fmt.Fprintln(useCmd.Output(), "для использования: use [-id ID]")
+		useCmd.PrintDefaults()
+	}
 	if err := useCmd.Parse(args); err != nil {
 		return err
 	}
@@ -83,6 +91,24 @@ func useItem(inv *inventoryService.Inventory, args []string) error {
 		return err
 	}
 	fmt.Println(msg)
+	return nil
+}
+
+func deleteItem(inv *inventoryService.Inventory, args []string) error {
+	deleteCmd := flag.NewFlagSet("delete", flag.ContinueOnError)
+	itemId := deleteCmd.Int("id", 0, "ID предмета для удаления")
+	deleteCmd.Usage = func() {
+		fmt.Fprintln(deleteCmd.Output(), "для использования: delete [-id ID]")
+		deleteCmd.PrintDefaults()
+	}
+	if err := deleteCmd.Parse(args); err != nil {
+		return err
+	}
+	err := inv.RemoveItemById(*itemId)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Предмет с ID %d успешно удален из инвентаря.\n", *itemId)
 	return nil
 }
 
@@ -105,6 +131,8 @@ func run(args []string) error {
 		return addItem(inv, args[1:])
 	case "use":
 		return useItem(inv, args[1:])
+	case "delete":
+		return deleteItem(inv, args[1:])
 	default:
 		return fmt.Errorf("%w: неизвестная команда %s", ErrUsage, args[0])
 	}
