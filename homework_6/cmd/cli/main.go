@@ -15,12 +15,14 @@ var (
 	ErrUsage          = errors.New("неизвестная команда")
 	ErrFlagIsNotExist = errors.New("отсутствует флаг")
 	ErrBadFlag        = errors.New("неизвестный флаг")
+	ErrArgumentsCount = errors.New("неверное кол-во аргументов")
 )
 
 var commandList = []string{
 	"list",
 	"add",
 	"use",
+	"delete",
 }
 
 func itemList(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) error {
@@ -31,10 +33,10 @@ func itemList(inv *inventory.Inventory, args []string, stdout, stderr io.Writer)
 		if errors.Is(err, flag.ErrHelp) {
 			return flag.ErrHelp
 		}
-		return ErrBadFlag
+		return fmt.Errorf("%w: %v", ErrBadFlag, err)
 	}
 	if listCmd.NArg() > 0 {
-		return fmt.Errorf("%w: команда list не принимает аргументов, получено: %v", ErrBadFlag, listCmd.Args())
+		return fmt.Errorf("%w: команда list не принимает аргументов, получено: %v", ErrArgumentsCount, listCmd.Args())
 	}
 
 	if len(inv.Items) == 0 {
@@ -69,10 +71,10 @@ func addItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) 
 		if errors.Is(err, flag.ErrHelp) {
 			return flag.ErrHelp
 		}
-		return ErrBadFlag
+		return fmt.Errorf("%w: %v", ErrBadFlag, err)
 	}
 	if addCmd.NArg() > 0 {
-		return fmt.Errorf("%w: лишние аргументы: %v", ErrBadFlag, addCmd.Args())
+		return fmt.Errorf("%w: лишние аргументы: %v", ErrArgumentsCount, addCmd.Args())
 	}
 	if *itemType == "" {
 		return fmt.Errorf("ошибка: %w -type обязателен", ErrFlagIsNotExist)
@@ -112,10 +114,10 @@ func useItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) 
 		if errors.Is(err, flag.ErrHelp) {
 			return flag.ErrHelp
 		}
-		return ErrBadFlag
+		return fmt.Errorf("%w: %v", ErrBadFlag, err)
 	}
 	if useCmd.NArg() > 0 {
-		return fmt.Errorf("%w: лишние аргументы: %v", ErrBadFlag, useCmd.Args())
+		return fmt.Errorf("%w: лишние аргументы: %v", ErrArgumentsCount, useCmd.Args())
 	}
 	if *itemId == 0 {
 		return fmt.Errorf("ошибка: %w -id обязателен", ErrFlagIsNotExist)
@@ -144,10 +146,10 @@ func deleteItem(inv *inventory.Inventory, args []string, stdout, stderr io.Write
 		if errors.Is(err, flag.ErrHelp) {
 			return flag.ErrHelp
 		}
-		return ErrBadFlag
+		return fmt.Errorf("%w: %v", ErrBadFlag, err)
 	}
 	if deleteCmd.NArg() > 0 {
-		return fmt.Errorf("%w: лишние аргументы: %v", ErrBadFlag, deleteCmd.Args())
+		return fmt.Errorf("%w: лишние аргументы: %v", ErrArgumentsCount, deleteCmd.Args())
 	}
 	if *itemId == 0 {
 		return fmt.Errorf("ошибка: %w -id обязателен", ErrFlagIsNotExist)
@@ -166,8 +168,8 @@ func run(args []string, stdout, stderr io.Writer) (err error) {
 	}
 	fs := storage.NewFileStorage("inventory.txt")
 	inv := inventory.NewInventory(fs)
-	if loadErr := inv.Load(); loadErr != nil && !os.IsNotExist(loadErr) {
-		fmt.Fprintln(stderr, "Внимание: при загрузке обнаружены проблемы:", loadErr)
+	if loadErr := inv.Load(); loadErr != nil && !errors.Is(loadErr, os.ErrNotExist) {
+		return fmt.Errorf("не удалось загрузить инвентарь: %w", loadErr)
 	}
 	defer func() {
 		if saveErr := inv.Save(); saveErr != nil {
@@ -192,7 +194,7 @@ func exitCode(err error) int {
 	switch {
 	case err == nil:
 		return 0
-	case errors.Is(err, ErrUsage) || errors.Is(err, ErrFlagIsNotExist):
+	case errors.Is(err, ErrUsage) || errors.Is(err, ErrFlagIsNotExist) || errors.Is(err, ErrBadFlag) || errors.Is(err, ErrArgumentsCount):
 		return 2
 	default:
 		return 1
