@@ -98,7 +98,10 @@ func addItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) 
 		return fmt.Errorf("неизвестный тип предмета: %s", *itemType)
 	}
 	id := inv.AddItem(item)
-	fmt.Fprintf(stdout, "Успешно добавлен предмет %q с ID: %d\n", *name, id)
+	if err := inv.Save(); err != nil {
+		return fmt.Errorf("не удалось сохранить изменения после добавления: %w", err)
+	}
+	fmt.Fprintf(stdout, "Успешно добавлен и сохранен предмет %q с ID: %d\n", *name, id)
 	return nil
 }
 
@@ -130,6 +133,9 @@ func useItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) 
 	if err != nil {
 		return err
 	}
+	if err = inv.Save(); err != nil {
+		return fmt.Errorf("не удалось сохранить изменения после использования: %w", err)
+	}
 	fmt.Fprintln(stdout, msg)
 	return nil
 }
@@ -158,11 +164,15 @@ func deleteItem(inv *inventory.Inventory, args []string, stdout, stderr io.Write
 	if err != nil {
 		return err
 	}
+	if err = inv.Save(); err != nil {
+		return fmt.Errorf("не удалось сохранить изменения после удаления: %w", err)
+	}
+
 	fmt.Fprintf(stdout, "Предмет с ID %d успешно удален из инвентаря.\n", *itemId)
 	return nil
 }
 
-func run(args []string, stdout, stderr io.Writer) (err error) {
+func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%w: список команд: %s", ErrUsage, commandList)
 	}
@@ -171,11 +181,6 @@ func run(args []string, stdout, stderr io.Writer) (err error) {
 	if loadErr := inv.Load(); loadErr != nil && !errors.Is(loadErr, os.ErrNotExist) {
 		return fmt.Errorf("не удалось загрузить инвентарь: %w", loadErr)
 	}
-	defer func() {
-		if saveErr := inv.Save(); saveErr != nil {
-			err = errors.Join(err, fmt.Errorf("ошибка автосохранения: %w", saveErr))
-		}
-	}()
 	switch args[0] {
 	case "list":
 		return itemList(inv, args[1:], stdout, stderr)
