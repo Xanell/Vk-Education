@@ -14,6 +14,7 @@ import (
 var (
 	ErrUsage          = errors.New("неизвестная команда")
 	ErrFlagIsNotExist = errors.New("отсутствует флаг")
+	ErrBadFlag        = errors.New("неизвестный флаг")
 )
 
 var commandList = []string{
@@ -22,7 +23,20 @@ var commandList = []string{
 	"use",
 }
 
-func itemList(inv *inventory.Inventory, stdout io.Writer) error {
+func itemList(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) error {
+	listCmd := flag.NewFlagSet("list", flag.ContinueOnError)
+	listCmd.SetOutput(stderr)
+
+	if err := listCmd.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return flag.ErrHelp
+		}
+		return ErrBadFlag
+	}
+	if listCmd.NArg() > 0 {
+		return fmt.Errorf("%w: команда list не принимает аргументов, получено: %v", ErrBadFlag, listCmd.Args())
+	}
+
 	if len(inv.Items) == 0 {
 		fmt.Fprintln(stdout, "Инвентарь пуст.")
 		return nil
@@ -30,7 +44,7 @@ func itemList(inv *inventory.Inventory, stdout io.Writer) error {
 
 	fmt.Fprintln(stdout, "--- Ваш инвентарь ---")
 	for _, item := range inv.Items {
-		fmt.Fprintln(stdout, domain.DescribeItem(item))
+		fmt.Fprintln(stdout, items.DescribeItem(item))
 	}
 	return nil
 }
@@ -52,26 +66,32 @@ func addItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) 
 		addCmd.PrintDefaults()
 	}
 	if err := addCmd.Parse(args); err != nil {
-		return err
+		if errors.Is(err, flag.ErrHelp) {
+			return flag.ErrHelp
+		}
+		return ErrBadFlag
+	}
+	if addCmd.NArg() > 0 {
+		return fmt.Errorf("%w: лишние аргументы: %v", ErrBadFlag, addCmd.Args())
 	}
 	if *itemType == "" {
-		return fmt.Errorf("ошибка: %w флаг -type обязателен", ErrFlagIsNotExist)
+		return fmt.Errorf("ошибка: %w -type обязателен", ErrFlagIsNotExist)
 	}
 	if *name == "" {
-		return fmt.Errorf("ошибка: %w флаг -name обязателен", ErrFlagIsNotExist)
+		return fmt.Errorf("ошибка: %w -name обязателен", ErrFlagIsNotExist)
 	}
 	if *weight == 0.0 {
-		return fmt.Errorf("ошибка: %w флаг -weight обязателен", ErrFlagIsNotExist)
+		return fmt.Errorf("ошибка: %w -weight обязателен", ErrFlagIsNotExist)
 	}
-	var item domain.Item
+	var item items.Item
 
 	switch *itemType {
 	case "weapon":
-		item = domain.NewWeapon(*name, *weight, *damage, *durability)
+		item = items.NewWeapon(*name, *weight, *damage, *durability)
 	case "armor":
-		item = domain.NewArmor(*name, *weight, *defense)
+		item = items.NewArmor(*name, *weight, *defense)
 	case "potion":
-		item = domain.NewPotion(*name, *weight, *effect, *charges)
+		item = items.NewPotion(*name, *weight, *effect, *charges)
 	default:
 		return fmt.Errorf("неизвестный тип предмета: %s", *itemType)
 	}
@@ -89,10 +109,16 @@ func useItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) 
 		useCmd.PrintDefaults()
 	}
 	if err := useCmd.Parse(args); err != nil {
-		return err
+		if errors.Is(err, flag.ErrHelp) {
+			return flag.ErrHelp
+		}
+		return ErrBadFlag
+	}
+	if useCmd.NArg() > 0 {
+		return fmt.Errorf("%w: лишние аргументы: %v", ErrBadFlag, useCmd.Args())
 	}
 	if *itemId == 0 {
-		return fmt.Errorf("ошибка: %w флаг -id обязателен", ErrFlagIsNotExist)
+		return fmt.Errorf("ошибка: %w -id обязателен", ErrFlagIsNotExist)
 	}
 	value, ok := inv.FindItemById(*itemId)
 	if !ok {
@@ -115,10 +141,16 @@ func deleteItem(inv *inventory.Inventory, args []string, stdout, stderr io.Write
 		deleteCmd.PrintDefaults()
 	}
 	if err := deleteCmd.Parse(args); err != nil {
-		return err
+		if errors.Is(err, flag.ErrHelp) {
+			return flag.ErrHelp
+		}
+		return ErrBadFlag
+	}
+	if deleteCmd.NArg() > 0 {
+		return fmt.Errorf("%w: лишние аргументы: %v", ErrBadFlag, deleteCmd.Args())
 	}
 	if *itemId == 0 {
-		return fmt.Errorf("ошибка: %w флаг -id обязателен", ErrFlagIsNotExist)
+		return fmt.Errorf("ошибка: %w -id обязателен", ErrFlagIsNotExist)
 	}
 	err := inv.RemoveItemById(*itemId)
 	if err != nil {
@@ -128,21 +160,23 @@ func deleteItem(inv *inventory.Inventory, args []string, stdout, stderr io.Write
 	return nil
 }
 
-func run(args []string, stdout, stderr io.Writer) error {
+func run(args []string, stdout, stderr io.Writer) (err error) {
 	if len(args) == 0 {
 		return fmt.Errorf("%w: список команд: %s", ErrUsage, commandList)
 	}
 	fs := storage.NewFileStorage("inventory.txt")
 	inv := inventory.NewInventory(fs)
-	_ = inv.Load()
+	if loadErr := inv.Load(); loadErr != nil && !os.IsNotExist(loadErr) {
+		fmt.Fprintln(stderr, "Внимание: при загрузке обнаружены проблемы:", loadErr)
+	}
 	defer func() {
-		if err := inv.Save(); err != nil {
-			fmt.Fprintln(stderr, "Ошибка автосохранения:", err)
+		if saveErr := inv.Save(); saveErr != nil {
+			err = errors.Join(err, fmt.Errorf("ошибка автосохранения: %w", saveErr))
 		}
 	}()
 	switch args[0] {
 	case "list":
-		return itemList(inv, stdout)
+		return itemList(inv, args[1:], stdout, stderr)
 	case "add":
 		return addItem(inv, args[1:], stdout, stderr)
 	case "use":
@@ -167,7 +201,9 @@ func exitCode(err error) int {
 
 func report(err error, stderr io.Writer) int {
 	if err != nil {
-		fmt.Fprintln(stderr, err)
+		if !errors.Is(err, ErrBadFlag) && !errors.Is(err, flag.ErrHelp) {
+			fmt.Fprintln(stderr, err)
+		}
 	}
 	return exitCode(err)
 }

@@ -23,7 +23,7 @@ func NewFileStorage(fileName string) *FileStorage {
 	}
 }
 
-func (fs *FileStorage) Save(items []domain.Item) (err error) {
+func (fs *FileStorage) Save(items []items.Item) (err error) {
 	file, err := os.Create(fs.fileName)
 	if err != nil {
 		return fmt.Errorf("ошибка сохранения в файл: %w", err)
@@ -37,10 +37,10 @@ func (fs *FileStorage) Save(items []domain.Item) (err error) {
 	return fs.writeToFile(file, items)
 }
 
-func (fs *FileStorage) writeToFile(w io.Writer, items []domain.Item) error {
+func (fs *FileStorage) writeToFile(w io.Writer, itemList []items.Item) error {
 	var errs []error
-	for i, item := range items {
-		if storableItem, ok := item.(domain.Storable); ok {
+	for i, item := range itemList {
+		if storableItem, ok := item.(items.Storable); ok {
 			if err := storableItem.Serialize(w); err != nil {
 				errs = append(errs, fmt.Errorf("слот %d (предмет %q): %w", i, item.Name(), err))
 			}
@@ -49,7 +49,7 @@ func (fs *FileStorage) writeToFile(w io.Writer, items []domain.Item) error {
 	return errors.Join(errs...)
 }
 
-func (fs *FileStorage) Load() ([]domain.Item, error) {
+func (fs *FileStorage) Load() ([]items.Item, error) {
 	file, err := os.Open(fs.fileName)
 	if err != nil {
 		return nil, fmt.Errorf("ошибка загрузки из файла: %w", err)
@@ -58,14 +58,14 @@ func (fs *FileStorage) Load() ([]domain.Item, error) {
 	return fs.loadFromFile(file)
 }
 
-func (fs *FileStorage) loadFromFile(r io.Reader) ([]domain.Item, error) {
+func (fs *FileStorage) loadFromFile(r io.Reader) ([]items.Item, error) {
 	var errs []error
 	existingIDs := make(map[int]bool)
-	var loadedItems []domain.Item
+	var loadedItems []items.Item
 	scanner := bufio.NewScanner(r)
 	lineNum := 0
 	for scanner.Scan() {
-		var item domain.Item
+		var item items.Item
 		var err error
 
 		lineNum++
@@ -73,32 +73,32 @@ func (fs *FileStorage) loadFromFile(r io.Reader) ([]domain.Item, error) {
 		lineSlice := strings.Split(line, "|")
 
 		if len(lineSlice) < 2 {
-			errs = append(errs, domain.NewParseItemError(lineNum, line, fmt.Errorf("недостаточно данных: строка не содержит тип предмета")))
+			errs = append(errs, items.NewParseItemError(lineNum, line, fmt.Errorf("недостаточно данных: строка не содержит тип предмета")))
 			continue
 		}
 
 		switch lineSlice[1] {
 		case "Weapon":
-			weapon := &domain.Weapon{}
+			weapon := &items.Weapon{}
 			err = weapon.Deserialize(strings.NewReader(line))
 			item = weapon
 		case "Armor":
-			armor := &domain.Armor{}
+			armor := &items.Armor{}
 			err = armor.Deserialize(strings.NewReader(line))
 			item = armor
 		case "Potion":
-			potion := &domain.Potion{}
+			potion := &items.Potion{}
 			err = potion.Deserialize(strings.NewReader(line))
 			item = potion
 		default:
 			err = fmt.Errorf("неизвестный тип предмета %s", lineSlice[1])
 		}
 		if err != nil {
-			errs = append(errs, domain.NewParseItemError(lineNum, line, err))
+			errs = append(errs, items.NewParseItemError(lineNum, line, err))
 			continue
 		}
 		if existingIDs[item.GetId()] {
-			errs = append(errs, domain.NewParseItemError(lineNum, line, fmt.Errorf("дубликат ID %d", item.GetId())))
+			errs = append(errs, items.NewParseItemError(lineNum, line, fmt.Errorf("дубликат ID %d", item.GetId())))
 			continue
 		}
 		existingIDs[item.GetId()] = true

@@ -7,25 +7,25 @@ import (
 )
 
 type Storage interface {
-	Save(item []domain.Item) error
-	Load() ([]domain.Item, error)
+	Save(item []items.Item) error
+	Load() ([]items.Item, error)
 }
 
 type Inventory struct {
 	nextID int
-	Items  []domain.Item
+	Items  []items.Item
 	store  Storage
 }
 
 func NewInventory(store Storage) *Inventory {
 	return &Inventory{
 		nextID: 1,
-		Items:  make([]domain.Item, 0),
+		Items:  make([]items.Item, 0),
 		store:  store,
 	}
 }
 
-func (inv *Inventory) AddItem(item domain.Item) int {
+func (inv *Inventory) AddItem(item items.Item) int {
 	item.SetId(inv.nextID)
 	inv.Items = append(inv.Items, item)
 	inv.nextID++
@@ -42,13 +42,13 @@ func (inv *Inventory) RemoveItemById(id int) error {
 	return fmt.Errorf("предмет с ID %d не найден", id)
 }
 
-func (inv *Inventory) Weapons() []*domain.Weapon {
-	weapons := collections.Filter(inv.Items, func(item domain.Item) bool {
-		_, ok := item.(*domain.Weapon)
+func (inv *Inventory) Weapons() []*items.Weapon {
+	weapons := collections.Filter(inv.Items, func(item items.Item) bool {
+		_, ok := item.(*items.Weapon)
 		return ok
 	})
-	return collections.Map(weapons, func(item domain.Item) *domain.Weapon {
-		w, ok := item.(*domain.Weapon)
+	return collections.Map(weapons, func(item items.Item) *items.Weapon {
+		w, ok := item.(*items.Weapon)
 		if !ok {
 			return nil
 		}
@@ -56,12 +56,12 @@ func (inv *Inventory) Weapons() []*domain.Weapon {
 	})
 }
 
-func (inv *Inventory) BrokenItems() []domain.Item {
-	return collections.Filter(inv.Items, func(item domain.Item) bool {
+func (inv *Inventory) BrokenItems() []items.Item {
+	return collections.Filter(inv.Items, func(item items.Item) bool {
 		switch value := item.(type) {
-		case *domain.Weapon:
+		case *items.Weapon:
 			return value.Durability <= 0
-		case *domain.Potion:
+		case *items.Potion:
 			return value.Charges <= 0
 		default:
 			return false
@@ -70,13 +70,13 @@ func (inv *Inventory) BrokenItems() []domain.Item {
 }
 
 func (inv *Inventory) ItemNames() []string {
-	return collections.Map(inv.Items, func(item domain.Item) string {
+	return collections.Map(inv.Items, func(item items.Item) string {
 		return item.Name()
 	})
 }
 
-func (inv *Inventory) FindItemById(id int) (domain.Item, bool) {
-	return collections.Find(inv.Items, func(item domain.Item) bool {
+func (inv *Inventory) FindItemById(id int) (items.Item, bool) {
+	return collections.Find(inv.Items, func(item items.Item) bool {
 		return item.GetId() == id
 	})
 }
@@ -92,7 +92,10 @@ func (inv *Inventory) Load() error {
 			inv.nextID = item.GetId() + 1
 		}
 	}
-	return fmt.Errorf("ошибка при загрузке данных: %w", err)
+	if err != nil {
+		return fmt.Errorf("ошибка при загрузке данных: %w", err)
+	}
+	return nil
 }
 
 func (inv *Inventory) Save() error {
