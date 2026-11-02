@@ -61,7 +61,7 @@ func (fs *FileStorage) Load() ([]items.Item, error) {
 func (fs *FileStorage) loadFromFile(r io.Reader) ([]items.Item, error) {
 	var errs []error
 	existingIDs := make(map[int]bool)
-	var loadedItems []items.Item
+	loadedItems := make([]items.Item, 0)
 	scanner := bufio.NewScanner(r)
 	lineNum := 0
 	for scanner.Scan() {
