@@ -131,7 +131,7 @@ func useItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) 
 	}
 	msg, err := value.Use()
 	if err != nil {
-		return err
+		return fmt.Errorf("ошибка при использовании: %w ", err)
 	}
 	if err = inv.Save(); err != nil {
 		return fmt.Errorf("не удалось сохранить изменения после использования: %w", err)
