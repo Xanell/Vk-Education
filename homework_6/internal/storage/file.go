@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"go-education/homework_6/internal/inventory"
 	"go-education/homework_6/internal/items"
 	"io"
 	"os"
@@ -24,7 +23,7 @@ func NewFileStorage(fileName string) *FileStorage {
 	}
 }
 
-func (fs *FileStorage) Save(inv *inventoryService.Inventory) (err error) {
+func (fs *FileStorage) Save(items []domain.Item) (err error) {
 	file, err := os.Create(fs.fileName)
 	if err != nil {
 		return fmt.Errorf("ошибка сохранения в файл: %w", err)
@@ -35,7 +34,7 @@ func (fs *FileStorage) Save(inv *inventoryService.Inventory) (err error) {
 			err = errors.Join(err, fmt.Errorf("ошибка при закрытии файла: %w", closeErr))
 		}
 	}()
-	return fs.writeToFile(file, inv.Items)
+	return fs.writeToFile(file, items)
 }
 
 func (fs *FileStorage) writeToFile(w io.Writer, items []domain.Item) error {
@@ -50,11 +49,19 @@ func (fs *FileStorage) writeToFile(w io.Writer, items []domain.Item) error {
 	return errors.Join(errs...)
 }
 
-func (fs *FileStorage) loadFromFile(r io.Reader, inv *inventoryService.Inventory) error {
+func (fs *FileStorage) Load() ([]domain.Item, error) {
+	file, err := os.Open(fs.fileName)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка загрузки из файла: %w", err)
+	}
+	defer file.Close()
+	return fs.loadFromFile(file)
+}
+
+func (fs *FileStorage) loadFromFile(r io.Reader) ([]domain.Item, error) {
 	var errs []error
 	existingIDs := make(map[int]bool)
-	inv.Items = make([]domain.Item, 0)
-	inv.NextID = 1
+	var loadedItems []domain.Item
 	scanner := bufio.NewScanner(r)
 	lineNum := 0
 	for scanner.Scan() {
@@ -95,22 +102,10 @@ func (fs *FileStorage) loadFromFile(r io.Reader, inv *inventoryService.Inventory
 			continue
 		}
 		existingIDs[item.GetId()] = true
-		inv.Items = append(inv.Items, item)
-		if item.GetId() >= inv.NextID {
-			inv.NextID = item.GetId() + 1
-		}
+		loadedItems = append(loadedItems, item)
 	}
 	if err := scanner.Err(); err != nil {
 		errs = append(errs, fmt.Errorf("ошибка чтения из файла: %w", err))
 	}
-	return errors.Join(errs...)
-}
-
-func (fs *FileStorage) Load(inv *inventoryService.Inventory) error {
-	file, err := os.Open(fs.fileName)
-	if err != nil {
-		return fmt.Errorf("ошибка загрузки из файла: %w", err)
-	}
-	defer file.Close()
-	return fs.loadFromFile(file, inv)
+	return loadedItems, errors.Join(errs...)
 }

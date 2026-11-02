@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"go-education/homework_6/internal/inventory"
-	domain "go-education/homework_6/internal/items"
+	"go-education/homework_6/internal/items"
 	"go-education/homework_6/internal/storage"
-	"go-education/homework_6/pkg/utils"
+	"io"
 	"os"
 )
 
@@ -22,20 +22,20 @@ var commandList = []string{
 	"use",
 }
 
-func itemList(inv *inventoryService.Inventory) error {
+func itemList(inv *inventory.Inventory, stdout io.Writer) error {
 	if len(inv.Items) == 0 {
-		fmt.Println("Инвентарь пуст.")
+		fmt.Fprintln(stdout, "Инвентарь пуст.")
 		return nil
 	}
 
-	fmt.Println("--- Ваш инвентарь ---")
+	fmt.Fprintln(stdout, "--- Ваш инвентарь ---")
 	for _, item := range inv.Items {
-		fmt.Println(utils.DescribeItem(item))
+		fmt.Fprintln(stdout, domain.DescribeItem(item))
 	}
 	return nil
 }
 
-func addItem(inv *inventoryService.Inventory, args []string) error {
+func addItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) error {
 	addCmd := flag.NewFlagSet("add", flag.ContinueOnError)
 	itemType := addCmd.String("type", "", "Тип предмета (weapon, armor, potion)")
 	name := addCmd.String("name", "", "Имя предмета")
@@ -46,8 +46,9 @@ func addItem(inv *inventoryService.Inventory, args []string) error {
 	defense := addCmd.Int("defense", 5, "Защита (для armor)")
 	effect := addCmd.String("effect", "", "Эффект (для potion)")
 	charges := addCmd.Int("charges", 1, "Заряды (для potion)")
+	addCmd.SetOutput(stderr)
 	addCmd.Usage = func() {
-		fmt.Fprintln(addCmd.Output(), "для использования: add [-type ItemType] [-name NAME] [-weight WEIGHT]")
+		fmt.Fprintln(stderr, "для использования: add [-type ItemType] [-name NAME] [-weight WEIGHT]")
 		addCmd.PrintDefaults()
 	}
 	if err := addCmd.Parse(args); err != nil {
@@ -75,15 +76,16 @@ func addItem(inv *inventoryService.Inventory, args []string) error {
 		return fmt.Errorf("неизвестный тип предмета: %s", *itemType)
 	}
 	id := inv.AddItem(item)
-	fmt.Printf("Успешно добавлен предмет %q с ID: %d\n", *name, id)
+	fmt.Fprintf(stdout, "Успешно добавлен предмет %q с ID: %d\n", *name, id)
 	return nil
 }
 
-func useItem(inv *inventoryService.Inventory, args []string) error {
+func useItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) error {
 	useCmd := flag.NewFlagSet("use", flag.ContinueOnError)
 	itemId := useCmd.Int("id", 0, "ID предмета для использования")
+	useCmd.SetOutput(stderr)
 	useCmd.Usage = func() {
-		fmt.Fprintln(useCmd.Output(), "для использования: use [-id ID]")
+		fmt.Fprintln(stderr, "для использования: use [-id ID]")
 		useCmd.PrintDefaults()
 	}
 	if err := useCmd.Parse(args); err != nil {
@@ -100,15 +102,16 @@ func useItem(inv *inventoryService.Inventory, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(msg)
+	fmt.Fprintln(stdout, msg)
 	return nil
 }
 
-func deleteItem(inv *inventoryService.Inventory, args []string) error {
+func deleteItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) error {
 	deleteCmd := flag.NewFlagSet("delete", flag.ContinueOnError)
 	itemId := deleteCmd.Int("id", 0, "ID предмета для удаления")
+	deleteCmd.SetOutput(stderr)
 	deleteCmd.Usage = func() {
-		fmt.Fprintln(deleteCmd.Output(), "для использования: delete [-id ID]")
+		fmt.Fprintln(stderr, "для использования: delete [-id ID]")
 		deleteCmd.PrintDefaults()
 	}
 	if err := deleteCmd.Parse(args); err != nil {
@@ -121,31 +124,31 @@ func deleteItem(inv *inventoryService.Inventory, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Предмет с ID %d успешно удален из инвентаря.\n", *itemId)
+	fmt.Fprintf(stdout, "Предмет с ID %d успешно удален из инвентаря.\n", *itemId)
 	return nil
 }
 
-func run(args []string) error {
+func run(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%w: список команд: %s", ErrUsage, commandList)
 	}
 	fs := storage.NewFileStorage("inventory.txt")
-	inv := inventoryService.NewInventory(fs)
+	inv := inventory.NewInventory(fs)
 	_ = inv.Load()
 	defer func() {
 		if err := inv.Save(); err != nil {
-			fmt.Fprintln(os.Stderr, "Ошибка автосохранения:", err)
+			fmt.Fprintln(stderr, "Ошибка автосохранения:", err)
 		}
 	}()
 	switch args[0] {
 	case "list":
-		return itemList(inv)
+		return itemList(inv, stdout)
 	case "add":
-		return addItem(inv, args[1:])
+		return addItem(inv, args[1:], stdout, stderr)
 	case "use":
-		return useItem(inv, args[1:])
+		return useItem(inv, args[1:], stdout, stderr)
 	case "delete":
-		return deleteItem(inv, args[1:])
+		return deleteItem(inv, args[1:], stdout, stderr)
 	default:
 		return fmt.Errorf("%w: неизвестная команда %s", ErrUsage, args[0])
 	}
@@ -162,13 +165,13 @@ func exitCode(err error) int {
 	}
 }
 
-func report(err error) int {
+func report(err error, stderr io.Writer) int {
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(stderr, err)
 	}
 	return exitCode(err)
 }
 
 func main() {
-	os.Exit(report(run(os.Args[1:])))
+	os.Exit(report(run(os.Args[1:], os.Stdout, os.Stderr), os.Stderr))
 }

@@ -1,34 +1,34 @@
-package inventoryService
+package inventory
 
 import (
 	"fmt"
 	"go-education/homework_6/internal/items"
-	"go-education/homework_6/pkg/utils"
+	"go-education/homework_6/pkg/collections"
 )
 
 type Storage interface {
-	Save(inv *Inventory) error
-	Load(inv *Inventory) error
+	Save(item []domain.Item) error
+	Load() ([]domain.Item, error)
 }
 
 type Inventory struct {
-	NextID int
+	nextID int
 	Items  []domain.Item
 	store  Storage
 }
 
 func NewInventory(store Storage) *Inventory {
 	return &Inventory{
-		NextID: 1,
+		nextID: 1,
 		Items:  make([]domain.Item, 0),
 		store:  store,
 	}
 }
 
 func (inv *Inventory) AddItem(item domain.Item) int {
-	item.SetId(inv.NextID)
+	item.SetId(inv.nextID)
 	inv.Items = append(inv.Items, item)
-	inv.NextID++
+	inv.nextID++
 	return item.GetId()
 }
 
@@ -43,11 +43,11 @@ func (inv *Inventory) RemoveItemById(id int) error {
 }
 
 func (inv *Inventory) Weapons() []*domain.Weapon {
-	weapons := utils.Filter(inv.Items, func(item domain.Item) bool {
+	weapons := collections.Filter(inv.Items, func(item domain.Item) bool {
 		_, ok := item.(*domain.Weapon)
 		return ok
 	})
-	return utils.Map(weapons, func(item domain.Item) *domain.Weapon {
+	return collections.Map(weapons, func(item domain.Item) *domain.Weapon {
 		w, ok := item.(*domain.Weapon)
 		if !ok {
 			return nil
@@ -57,7 +57,7 @@ func (inv *Inventory) Weapons() []*domain.Weapon {
 }
 
 func (inv *Inventory) BrokenItems() []domain.Item {
-	return utils.Filter(inv.Items, func(item domain.Item) bool {
+	return collections.Filter(inv.Items, func(item domain.Item) bool {
 		switch value := item.(type) {
 		case *domain.Weapon:
 			return value.Durability <= 0
@@ -70,21 +70,31 @@ func (inv *Inventory) BrokenItems() []domain.Item {
 }
 
 func (inv *Inventory) ItemNames() []string {
-	return utils.Map(inv.Items, func(item domain.Item) string {
+	return collections.Map(inv.Items, func(item domain.Item) string {
 		return item.Name()
 	})
 }
 
 func (inv *Inventory) FindItemById(id int) (domain.Item, bool) {
-	return utils.Find(inv.Items, func(item domain.Item) bool {
+	return collections.Find(inv.Items, func(item domain.Item) bool {
 		return item.GetId() == id
 	})
 }
 
 func (inv *Inventory) Load() error {
-	return inv.store.Load(inv)
+	items, err := inv.store.Load()
+	if items != nil {
+		inv.Items = items
+	}
+	inv.nextID = 1
+	for _, item := range inv.Items {
+		if item.GetId() >= inv.nextID {
+			inv.nextID = item.GetId() + 1
+		}
+	}
+	return fmt.Errorf("ошибка при загрузке данных: %w", err)
 }
 
 func (inv *Inventory) Save() error {
-	return inv.store.Save(inv)
+	return inv.store.Save(inv.Items)
 }

@@ -104,6 +104,9 @@ func (w *Weapon) Deserialize(r io.Reader) error {
 	}
 	line := string(data)
 	lineSlice := strings.Split(line, "|")
+	if len(lineSlice) != 6 {
+		return fmt.Errorf("ожидалось 6 полей, получено %d", len(lineSlice))
+	}
 	w.ID, err = parseInt(lineSlice[0], "ID")
 	if err != nil {
 		return err
@@ -336,4 +339,25 @@ func parseFloat(s, fieldName string) (float64, error) {
 		return 0.0, fmt.Errorf("неверный формат для %s: %w", fieldName, err)
 	}
 	return value, nil
+}
+func DescribeItem(i Item) string {
+	switch value := i.(type) {
+	case nil:
+		return "Предмет отсутствует"
+	case *Weapon:
+		if value == nil {
+			return "Предмет отсутствует"
+		}
+	case *Armor:
+		if value == nil {
+			return "Предмет отсутствует"
+		}
+	case *Potion:
+		if value == nil {
+			return "Предмет отсутствует"
+		}
+	default:
+		return "Неизвестный предмет"
+	}
+	return fmt.Sprintf("[ID: %d] %s (вес: %.2f)", i.GetId(), i.Name(), i.Weight())
 }
