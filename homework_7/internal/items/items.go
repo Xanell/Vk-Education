@@ -103,7 +103,7 @@ func (w *Weapon) Deserialize(r io.Reader) error {
 		return fmt.Errorf("не удалось прочитать данные из потока: %w", err)
 	}
 	line := string(data)
-	lineSlice := strings.Split(line, "|")
+	lineSlice := strings.Split(strings.TrimSpace(line), "|")
 	if len(lineSlice) != 6 {
 		return fmt.Errorf("ожидалось 6 полей, получено %d", len(lineSlice))
 	}
@@ -181,7 +181,7 @@ func (a *Armor) Deserialize(r io.Reader) error {
 		return fmt.Errorf("не удалось прочитать данные из потока: %w", err)
 	}
 	line := string(data)
-	lineSlice := strings.Split(line, "|")
+	lineSlice := strings.Split(strings.TrimSpace(line), "|")
 	if len(lineSlice) != 5 {
 		return fmt.Errorf("ожидалось 5 полей, получено %d", len(lineSlice))
 	}
@@ -263,7 +263,7 @@ func (p *Potion) Deserialize(r io.Reader) error {
 		return err
 	}
 	line := string(data)
-	lineSlice := strings.Split(line, "|")
+	lineSlice := strings.Split(strings.TrimSpace(line), "|")
 
 	if len(lineSlice) != 6 {
 		return fmt.Errorf("ожидалось 6 полей, получено %d", len(lineSlice))

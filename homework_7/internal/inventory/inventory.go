@@ -2,8 +2,8 @@ package inventory
 
 import (
 	"fmt"
-	"go-education/homework_6/internal/items"
-	"go-education/homework_6/pkg/collections"
+	"go-education/homework_7/internal/items"
+	"go-education/homework_7/pkg/collections"
 )
 
 type Storage interface {

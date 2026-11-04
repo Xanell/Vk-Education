@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"go-education/homework_6/internal/items"
+	"go-education/homework_7/internal/items"
 	"io"
 	"os"
 	"strings"
