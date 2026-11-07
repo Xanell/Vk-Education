@@ -2,11 +2,10 @@ package items
 
 import (
 	"bytes"
-	"strings"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strings"
+	"testing"
 )
 
 func TestItemUse(t *testing.T) {

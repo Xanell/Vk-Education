@@ -1,10 +1,13 @@
 package inventory
 
 import (
+	"errors"
 	"fmt"
 	"go-education/homework_7/internal/items"
 	"go-education/homework_7/pkg/collections"
 )
+
+var ErrItemNotFound = errors.New("предмет не найден")
 
 type Storage interface {
 	Save(item []items.Item) error
@@ -39,7 +42,7 @@ func (inv *Inventory) RemoveItemById(id int) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("предмет с ID %d не найден", id)
+	return fmt.Errorf("ID: %d: %w", id, ErrItemNotFound)
 }
 
 func (inv *Inventory) Weapons() []*items.Weapon {
