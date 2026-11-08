@@ -127,7 +127,7 @@ func useItem(inv *inventory.Inventory, args []string, stdout, stderr io.Writer) 
 	}
 	value, ok := inv.FindItemById(*itemId)
 	if !ok {
-		return fmt.Errorf("предмет с ID: %d не найден", *itemId)
+		return fmt.Errorf("%w: ID %d", inventory.ErrItemNotFound, *itemId)
 	}
 	msg, err := value.Use()
 	if err != nil {
@@ -172,11 +172,11 @@ func deleteItem(inv *inventory.Inventory, args []string, stdout, stderr io.Write
 	return nil
 }
 
-func run(args []string, stdout, stderr io.Writer) error {
+func run(args []string, stdout, stderr io.Writer, filePath string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%w: список команд: %s", ErrUsage, commandList)
 	}
-	fs := storage.NewFileStorage("inventory.txt")
+	fs := storage.NewFileStorage(filePath)
 	inv := inventory.NewInventory(fs)
 	if loadErr := inv.Load(); loadErr != nil && !errors.Is(loadErr, os.ErrNotExist) {
 		return fmt.Errorf("не удалось загрузить инвентарь: %w", loadErr)
@@ -216,5 +216,5 @@ func report(err error, stderr io.Writer) int {
 }
 
 func main() {
-	os.Exit(report(run(os.Args[1:], os.Stdout, os.Stderr), os.Stderr))
+	os.Exit(report(run(os.Args[1:], os.Stdout, os.Stderr, "inventory.txt"), os.Stderr))
 }
