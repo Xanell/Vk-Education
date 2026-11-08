@@ -30,7 +30,7 @@ func TestInventoryItemNames(t *testing.T) {
 			"Полное зелье",
 			"Броня",
 		}
-		got := inv.BrokenItems()
+		got := inv.ItemNames()
 		assert.Equal(t, expected, got)
 	})
 	t.Run("Пустой инвентарь возвращает пустой список", func(t *testing.T) {

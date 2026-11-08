@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go-education/homework_7/internal/items"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -94,6 +95,28 @@ func TestFileStorageLoad(t *testing.T) {
 		assert.Equal(t, 2, parseErr.Line, "Номер строки должен быть 2")
 		assert.Equal(t, brokenLine, parseErr.Value, "Текст строки не совпадает")
 		assert.ErrorContains(t, parseErr.Err, "неизвестный тип предмета")
+	})
+	t.Run("Ошибка загрузки парсинг строки в файле", func(t *testing.T) {
+		fs, filePath := testSetup(t)
+
+		validLine := "1|Weapon|Меч|5.00|10|100"
+		brokenLine := "2|Armor|Броня|abc|5"
+		content := validLine + "\n" + brokenLine + "\n"
+
+		err := os.WriteFile(filePath, []byte(content), 0644)
+		require.NoError(t, err)
+
+		got, err := fs.Load()
+		require.Len(t, got, 1, "Проверяем что целая строка загрузилась")
+		assert.Equal(t, "Меч", got[0].Name())
+
+		require.Error(t, err)
+		var parseErr *items.ParseItemError
+		require.True(t, errors.As(err, &parseErr), "Ошибка должна содержать ParseItemError")
+
+		assert.Equal(t, 2, parseErr.Line, "Номер строки должен быть 2")
+		assert.Equal(t, brokenLine, parseErr.Value, "Текст строки не совпадает")
+		assert.ErrorIs(t, parseErr.Err, strconv.ErrSyntax)
 	})
 	t.Run("Ошибка загрузки", func(t *testing.T) {
 		fs, _ := testSetup(t)

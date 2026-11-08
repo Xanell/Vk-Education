@@ -2,9 +2,10 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"go-education/homework_7/internal/inventory"
-	inventory_mock "go-education/homework_7/internal/inventory/mock"
+	"go-education/homework_7/internal/inventory/mock"
 	"go-education/homework_7/internal/items"
 	"go-education/homework_7/internal/storage"
 	"os"
@@ -307,6 +308,141 @@ func TestDeleteItem(t *testing.T) {
 				require.NoError(t, readErr)
 				assert.Equal(t, tt.wantFileContent, string(savedData), "Состояние файла после выполнения не совпадает")
 			}
+		})
+	}
+}
+
+func TestExitCode(t *testing.T) {
+	tests := []struct {
+		name     string
+		inputErr error
+		wantCode int
+	}{
+		{
+			name:     "Успех (nil)",
+			inputErr: nil,
+			wantCode: 0,
+		},
+		{
+			name:     "Неизвестная команда",
+			inputErr: ErrUsage,
+			wantCode: 2,
+		},
+		{
+			name:     "Неверный флаг",
+			inputErr: ErrBadFlag,
+			wantCode: 2,
+		},
+		{
+			name:     "Не хватает флагов",
+			inputErr: ErrFlagIsNotExist,
+			wantCode: 2,
+		},
+		{
+			name:     "Лишние аргументы",
+			inputErr: ErrArgumentsCount,
+			wantCode: 2,
+		},
+		{
+			name:     "Системная ошибка",
+			inputErr: errors.New("disk error"),
+			wantCode: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.wantCode, exitCode(tt.inputErr))
+		})
+	}
+}
+
+func TestReport(t *testing.T) {
+	t.Run("Успешное выполнение", func(t *testing.T) {
+		var stderr bytes.Buffer
+		code := report(nil, &stderr)
+
+		assert.Equal(t, 0, code)
+		assert.Empty(t, stderr.String(), "При успехе stderr должен быть пуст")
+	})
+
+	t.Run("Ошибка ErrUsage неизвестная команда", func(t *testing.T) {
+		var stderr bytes.Buffer
+		code := report(ErrUsage, &stderr)
+
+		assert.Equal(t, 2, code)
+		assert.Contains(t, stderr.String(), "неизвестная команда")
+	})
+}
+
+func TestLoadErrorNoSave(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockStore := inventory_mock.NewMockStorage(ctrl)
+	var out, errOut bytes.Buffer
+
+	mockStore.EXPECT().
+		Load().
+		Return(nil, errors.New("сбой чтения файла")).
+		Times(1)
+
+	err := run([]string{"add", "-type", "weapon", "-name", "Меч", "-weight", "1.0"}, &out, &errOut, mockStore)
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "не удалось загрузить инвентарь")
+
+	assert.Empty(t, out.String())
+}
+
+func TestSaveError(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		loadItem []items.Item
+		wantErr  string
+	}{
+		{
+			name:     "Ошибка и вывод при добавление предмета",
+			args:     []string{"add", "-type", "weapon", "-name", "Экскалибур", "-weight", "5.0"},
+			loadItem: []items.Item{},
+			wantErr:  "не удалось сохранить изменения после добавления",
+		},
+		{
+			name:     "Ошибка сохранения при use",
+			args:     []string{"use", "-id", "1"},
+			loadItem: []items.Item{items.NewWeapon("Меч", 5.0, 10, 100)}, // Нужен предмет
+			wantErr:  "не удалось сохранить изменения после использования",
+		},
+		{
+			name:     "Ошибка сохранения при delete",
+			args:     []string{"delete", "-id", "1"},
+			loadItem: []items.Item{items.NewWeapon("Меч", 5.0, 10, 100)}, // Нужен предмет
+			wantErr:  "не удалось сохранить изменения после удаления",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			mockStore := inventory_mock.NewMockStorage(ctrl)
+			var out, errOut bytes.Buffer
+
+			if len(tt.loadItem) > 0 {
+				tt.loadItem[0].SetId(1)
+			}
+			mockStore.EXPECT().
+				Load().
+				Return(tt.loadItem, nil).
+				Times(1)
+
+			mockStore.EXPECT().
+				Save(gomock.Any()).
+				Return(errors.New("диск переполнен")).
+				Times(1)
+
+			err := run(tt.args, &out, &errOut, mockStore)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
+
+			assert.Empty(t, out.String(), "Сообщение об успехе не должно выводиться, если сохранение упало")
 		})
 	}
 }
