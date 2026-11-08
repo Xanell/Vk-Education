@@ -4,64 +4,63 @@ import (
 	"bytes"
 	"flag"
 	"go-education/homework_7/internal/inventory"
+	inventory_mock "go-education/homework_7/internal/inventory/mock"
 	"go-education/homework_7/internal/items"
+	"go-education/homework_7/internal/storage"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
-func setupCLI(t *testing.T) (filePath string, stdout *bytes.Buffer, stderr *bytes.Buffer) {
+func setupCLI(t *testing.T) (store inventory.Storage, filePath string, stdout *bytes.Buffer, stderr *bytes.Buffer) {
 	t.Helper()
 
 	tempDir := t.TempDir()
 	filePath = filepath.Join(tempDir, "test_inventory.txt")
-
+	store = storage.NewFileStorage(filePath)
 	stdout = new(bytes.Buffer)
 	stderr = new(bytes.Buffer)
 
-	return filePath, stdout, stderr
+	return store, filePath, stdout, stderr
 }
 
 func TestItemList(t *testing.T) {
-	tests := []struct {
-		name            string
-		args            []string
-		wantErr         error
-		wantOut         string
-		wantFileContent string
-	}{
-		{
-			name:            "Успешная демонстрация пустого инвевнтаря",
-			args:            []string{"list"},
-			wantErr:         nil,
-			wantOut:         "Инвентарь пуст.\n",
-			wantFileContent: "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			filePath, out, errOut := setupCLI(t)
-			err := run(tt.args, out, errOut, filePath)
+	t.Run("Успешный вывод пустого инвентаря", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		mockStore := inventory_mock.NewMockStorage(ctrl)
 
-			if tt.wantErr != nil {
-				require.ErrorIs(t, err, tt.wantErr)
-				assert.Empty(t, out.String(), "При ошибке stdout должен быть пуст")
+		var out, errOut bytes.Buffer
 
-				_, statErr := os.Stat(filePath)
-				assert.True(t, os.IsNotExist(statErr), "Файл не должен создаваться при ошибке")
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.wantOut, out.String())
+		mockStore.EXPECT().Load().Return([]items.Item{}, nil).Times(1)
 
-				savedData, readErr := os.ReadFile(filePath)
-				require.NoError(t, readErr)
-				assert.Equal(t, tt.wantFileContent, string(savedData), "Предмет не сохранился в файл")
-			}
-		})
-	}
+		err := run([]string{"list"}, &out, &errOut, mockStore)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Инвентарь пуст.\n", out.String())
+		assert.Empty(t, errOut.String())
+	})
+
+	t.Run("Успешный вывод инвентаря с предметами", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		mockStore := inventory_mock.NewMockStorage(ctrl)
+
+		var out, errOut bytes.Buffer
+
+		sword := items.NewWeapon("Меч", 5.0, 10, 100)
+		sword.SetId(1)
+
+		mockStore.EXPECT().Load().Return([]items.Item{sword}, nil).Times(1)
+
+		err := run([]string{"list"}, &out, &errOut, mockStore)
+
+		require.NoError(t, err)
+		assert.Contains(t, out.String(), "--- Ваш инвентарь ---")
+		assert.Contains(t, out.String(), "Меч")
+	})
 }
 
 func TestAddItem(t *testing.T) {
@@ -111,8 +110,8 @@ func TestAddItem(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			filePath, out, errOut := setupCLI(t)
-			err := run(tt.args, out, errOut, filePath)
+			store, filePath, out, errOut := setupCLI(t)
+			err := run(tt.args, out, errOut, store)
 
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
@@ -200,13 +199,13 @@ func TestUseItem(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			filePath, out, errOut := setupCLI(t)
+			store, filePath, out, errOut := setupCLI(t)
 
 			if tt.fileContent != "" {
 				err := os.WriteFile(filePath, []byte(tt.fileContent), 0644)
 				require.NoError(t, err)
 			}
-			err := run(tt.args, out, errOut, filePath)
+			err := run(tt.args, out, errOut, store)
 
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
@@ -286,13 +285,13 @@ func TestDeleteItem(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			filePath, out, errOut := setupCLI(t)
+			store, filePath, out, errOut := setupCLI(t)
 
 			if tt.fileContent != "" {
 				err := os.WriteFile(filePath, []byte(tt.fileContent), 0644)
 				require.NoError(t, err)
 			}
-			err := run(tt.args, out, errOut, filePath)
+			err := run(tt.args, out, errOut, store)
 
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)

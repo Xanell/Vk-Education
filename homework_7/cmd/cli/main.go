@@ -172,12 +172,11 @@ func deleteItem(inv *inventory.Inventory, args []string, stdout, stderr io.Write
 	return nil
 }
 
-func run(args []string, stdout, stderr io.Writer, filePath string) error {
+func run(args []string, stdout, stderr io.Writer, store inventory.Storage) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%w: список команд: %s", ErrUsage, commandList)
 	}
-	fs := storage.NewFileStorage(filePath)
-	inv := inventory.NewInventory(fs)
+	inv := inventory.NewInventory(store)
 	if loadErr := inv.Load(); loadErr != nil && !errors.Is(loadErr, os.ErrNotExist) {
 		return fmt.Errorf("не удалось загрузить инвентарь: %w", loadErr)
 	}
@@ -216,5 +215,6 @@ func report(err error, stderr io.Writer) int {
 }
 
 func main() {
-	os.Exit(report(run(os.Args[1:], os.Stdout, os.Stderr, "inventory.txt"), os.Stderr))
+	store := storage.NewFileStorage("inventory.txt")
+	os.Exit(report(run(os.Args[1:], os.Stdout, os.Stderr, store), os.Stderr))
 }
