@@ -116,7 +116,7 @@ func TestFileStorageLoad(t *testing.T) {
 
 		assert.Equal(t, 2, parseErr.Line, "Номер строки должен быть 2")
 		assert.Equal(t, brokenLine, parseErr.Value, "Текст строки не совпадает")
-		assert.ErrorIs(t, parseErr.Err, strconv.ErrSyntax)
+		assert.ErrorIs(t, err, strconv.ErrSyntax)
 	})
 	t.Run("Ошибка загрузки", func(t *testing.T) {
 		fs, _ := testSetup(t)
