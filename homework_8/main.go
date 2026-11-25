@@ -16,7 +16,9 @@ func main() {
 	queryCount := flag.Int("k", 5, "кол-во запросов")
 	searchValue := flag.String("q", "Go", "искомая строка")
 	flag.Parse()
-
+	if *queryCount <= 0 {
+		return
+	}
 	var total atomic.Int64
 	wg := sync.WaitGroup{}
 	ch := make(chan string)
@@ -35,7 +37,7 @@ func main() {
 	}
 
 	wg.Wait()
-	fmt.Printf("Total %d", total.Load())
+	fmt.Printf("Total %d\n", total.Load())
 }
 
 // писатель
@@ -43,15 +45,11 @@ func reader(ch chan<- string) {
 	defer close(ch)
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		line := scanner.Text()
-		parts := strings.Split(line, `\n`)
-		for _, rawURL := range parts {
-			rawURL = strings.TrimSpace(rawURL)
-			if rawURL == "" {
-				continue
-			}
-			ch <- rawURL
+		rawURL := strings.TrimSpace(scanner.Text())
+		if rawURL == "" {
+			continue
 		}
+		ch <- rawURL
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintln(os.Stderr, "Ошибка при чтении stdin:", err)
@@ -77,6 +75,10 @@ func processURL(url, searchValue string) (int, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("сайт %s вернул статус %d", url, resp.StatusCode)
+	}
+	
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, fmt.Errorf("ошибка чтения ответа %s: %w", url, err)
